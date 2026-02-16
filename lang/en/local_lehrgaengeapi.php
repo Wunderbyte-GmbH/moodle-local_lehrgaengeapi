@@ -24,6 +24,7 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+$string['apirequestfailed'] = 'External API request failed.';
 $string['baseurl'] = 'Base URL';
 $string['baseurldesc'] = 'Base URL of the external API, e.g. https://api.example.com';
 $string['intervallehrgaenge'] = 'Sync interval: Lehrgänge list (seconds)';

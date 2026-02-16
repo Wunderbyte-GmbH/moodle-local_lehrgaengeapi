@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Observer for given events.
+ * Concrete config read class.
  *
  * @package   local_lehrgaengeapi
  * @author    Jacob Viertel

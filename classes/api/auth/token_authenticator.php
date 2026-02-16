@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Interface for configuration values.
+ * Concrete authentication class.
  *
  * @package   local_lehrgaengeapi
  * @author    Jacob Viertel
@@ -23,43 +23,49 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lehrgaengeapi\config;
+namespace local_lehrgaengeapi\api\auth;
 
 /**
- * Interface for configuration values.
+ * Concrete authentication class.
  * @package local_lehrgaengeapi
  * @author Jacob Viertel
  * @copyright 2026 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-interface settings_repository_interface {
+final class token_authenticator implements authenticator_interface {
     /**
-     * Function to get baseurl.
-     * @return string
+     * Token used for API authentication.
+     * @var string
      */
-    public function get_baseurl(): string;
+    private readonly string $token;
 
     /**
-     * Function to get auth token.
-     * @return string
+     * Header name used to send the token.
+     * @var string
      */
-    public function get_token(): string;
+    private readonly string $headername;
 
     /**
-     * Function to get timeout seconds.
-     * @return string
+     * Plugin constructor.
+     *
+     * @param string $token Token used for API authentication.
+     * @param string $headername Header name used to send the token.
      */
-    public function get_timeout_seconds(): int;
+    public function __construct(string $token, string $headername = 'X-MoodleAuthToken') {
+        $this->token = $token;
+        $this->headername = $headername;
+    }
 
     /**
-     * Function to get the interval lenght between lehrgaenge-api calls.
-     * @return string
+     * Function to get the header for api calls.
+     * @return array<string,string> HTTP headers to apply to a request.
      */
-    public function get_interval_lehrgaenge_seconds(): int;
-
-    /**
-     * Function to get the interval lenght between teilnehmer-api calls.
-     * @return string
-     */
-    public function get_interval_teilnehmer_seconds(): int;
+    public function get_headers(): array {
+        if ($this->token === '') {
+            return [];
+        }
+        return [
+            $this->headername => $this->token,
+        ];
+    }
 }

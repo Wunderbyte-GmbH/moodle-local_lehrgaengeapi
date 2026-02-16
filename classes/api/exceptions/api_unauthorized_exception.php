@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Interface for configuration values.
+ * 401 Unauthorized from external API.
  *
  * @package   local_lehrgaengeapi
  * @author    Jacob Viertel
@@ -23,43 +23,14 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lehrgaengeapi\config;
+namespace local_lehrgaengeapi\api\exceptions;
 
 /**
- * Interface for configuration values.
+ * 401 Unauthorized from external API.
  * @package local_lehrgaengeapi
  * @author Jacob Viertel
  * @copyright 2026 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-interface settings_repository_interface {
-    /**
-     * Function to get baseurl.
-     * @return string
-     */
-    public function get_baseurl(): string;
-
-    /**
-     * Function to get auth token.
-     * @return string
-     */
-    public function get_token(): string;
-
-    /**
-     * Function to get timeout seconds.
-     * @return string
-     */
-    public function get_timeout_seconds(): int;
-
-    /**
-     * Function to get the interval lenght between lehrgaenge-api calls.
-     * @return string
-     */
-    public function get_interval_lehrgaenge_seconds(): int;
-
-    /**
-     * Function to get the interval lenght between teilnehmer-api calls.
-     * @return string
-     */
-    public function get_interval_teilnehmer_seconds(): int;
+final class api_unauthorized_exception extends api_exception {
 }

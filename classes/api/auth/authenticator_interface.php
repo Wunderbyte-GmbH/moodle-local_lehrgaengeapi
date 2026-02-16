@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Interface for configuration values.
+ * Authentication interface.
  *
  * @package   local_lehrgaengeapi
  * @author    Jacob Viertel
@@ -23,43 +23,19 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lehrgaengeapi\config;
+namespace local_lehrgaengeapi\api\auth;
 
 /**
- * Interface for configuration values.
+ * Authentication interface.
  * @package local_lehrgaengeapi
  * @author Jacob Viertel
  * @copyright 2026 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-interface settings_repository_interface {
+interface authenticator_interface {
     /**
-     * Function to get baseurl.
-     * @return string
+     * Function to get the header for api calls.
+     * @return array<string,string> HTTP headers to apply to a request.
      */
-    public function get_baseurl(): string;
-
-    /**
-     * Function to get auth token.
-     * @return string
-     */
-    public function get_token(): string;
-
-    /**
-     * Function to get timeout seconds.
-     * @return string
-     */
-    public function get_timeout_seconds(): int;
-
-    /**
-     * Function to get the interval lenght between lehrgaenge-api calls.
-     * @return string
-     */
-    public function get_interval_lehrgaenge_seconds(): int;
-
-    /**
-     * Function to get the interval lenght between teilnehmer-api calls.
-     * @return string
-     */
-    public function get_interval_teilnehmer_seconds(): int;
+    public function get_headers(): array;
 }
