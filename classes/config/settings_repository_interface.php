@@ -25,8 +25,6 @@
 
 namespace local_lehrgaengeapi\config;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Interface for configuration values.
  * @package local_lehrgaengeapi

@@ -25,8 +25,6 @@
 
 namespace local_lehrgaengeapi\config;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Concrete config read class.
  * @package local_lehrgaengeapi
