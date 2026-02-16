@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - https://moodle.org/
+// This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,21 +12,28 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Scheduled tasks definition.
  *
  * @package     local_lehrgaengeapi
+ * @author    Jacob Viertel
  * @copyright   2026 Wunderbyte Gmbh <info@wunderbyte.at>
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_lehrgaengeapi';
-$plugin->release = '0.2.5';
-$plugin->supported = [405, 500];
-$plugin->version = 2026021601;
-$plugin->requires = 2022112800;
-$plugin->maturity = MATURITY_STABLE;
+$tasks = [
+    [
+        'classname' => '\local_lehrgaengeapi\task\sync_lehrgaenge_task',
+        'blocking' => 0,
+        'minute' => '*',
+        'hour' => '*/10',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'faildelay' => 60,
+    ],
+];

@@ -84,9 +84,11 @@ final class api_client {
         int $timeoutseconds = 30,
         ?\curl $curl = null
     ) {
+        global $CFG;
         $this->baseurl = $baseurl;
         $this->authenticator = $authenticator;
         $this->timeoutseconds = $timeoutseconds;
+        require_once($CFG->libdir . '/filelib.php');
         $this->curl = $curl ?? new \curl();
     }
 
@@ -94,7 +96,7 @@ final class api_client {
      * Perform a GET request.
      *
      * @param string $path Relative path like '/lehrgaenge'.
-     * @param array<string, scalar|null> $query Query params (null values are ignored).
+     * @param array $query Query params (null values are ignored).
      * @return api_response
      * @throws api_exception
      */
@@ -105,10 +107,6 @@ final class api_client {
             'CURLOPT_TIMEOUT' => $this->timeoutseconds,
         ];
 
-        // Ensure we don't accidentally accumulate headers across calls.
-        // Moodle's \curl stores headers internally; reset by creating a new instance per call is expensive,
-        // so we overwrite the header list by setting all headers needed.
-        // (If your Moodle version supports resetHeader(), we could use it, but it's not consistent.)
         foreach ($this->authenticator->get_headers() as $name => $value) {
             $this->curl->setHeader($name . ': ' . $value);
         }
@@ -118,7 +116,12 @@ final class api_client {
         $info = $this->curl->get_info();
         $status = (int)($info['http_code'] ?? 0);
 
-        $headers = $this->parse_response_headers((string)($this->curl->getResponse() ?? ''));
+        $rawresponse = $this->curl->getResponse() ?? '';
+        if (is_array($rawresponse)) {
+            // Some Moodle versions store response data as an array on failure/blocked calls.
+            $rawresponse = '';
+        }
+        $headers = $this->parse_response_headers((string)$rawresponse);
 
         if ($status >= 200 && $status < 300) {
             return new api_response($status, (string)$body, $headers);
@@ -131,7 +134,7 @@ final class api_client {
      * Build absolute request URL.
      *
      * @param string $path Relative path like '/lehrgaenge'.
-     * @param array<string, scalar|null> $query Query params (null values are ignored).
+     * @param array $query Query params (null values are ignored).
      * @return string
      */
     private function build_url(string $path, array $query): string {
@@ -157,7 +160,7 @@ final class api_client {
      * We take the last header block.
      *
      * @param string $raw Raw headers string.
-     * @return array<string,string>
+     * @return array
      */
     private function parse_response_headers(string $raw): array {
         $headers = [];
@@ -193,7 +196,7 @@ final class api_client {
      *
      * @param int $status HTTP status code.
      * @param string $body Raw response body.
-     * @param array<string,string> $headers Response headers.
+     * @param array $headers Response headers.
      * @param string $url Requested URL (for debugging).
      * @return never
      * @throws api_exception

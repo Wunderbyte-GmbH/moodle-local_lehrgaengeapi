@@ -29,6 +29,11 @@ use local_lehrgaengeapi\api\api_client;
 use local_lehrgaengeapi\api\auth\token_authenticator;
 use local_lehrgaengeapi\api\exceptions\api_rate_limited_exception;
 use local_lehrgaengeapi\api\exceptions\api_unauthorized_exception;
+use local_lehrgaengeapi\tests\test_helpers\curl_helper;
+
+defined('MOODLE_INTERNAL') || die();
+
+require_once(__DIR__ . '/../test_helpers/curl_helper.php');
 
 /**
  * Tests for api client.
@@ -44,7 +49,8 @@ final class api_client_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\api\api_client::get
      */
     public function test_get_success(): void {
-        $fake = $this->make_fake_curl('{"ok":true}', 200, "HTTP/1.1 200 OK\r\nX-Rate-Limit-Remaining: 9\r\n\r\n");
+        $curlhelper = new curl_helper();
+        $fake = $curlhelper->make_fake_curl('{"ok":true}', 200, "HTTP/1.1 200 OK\r\nX-Rate-Limit-Remaining: 9\r\n\r\n");
         $client = new api_client(
             'https://example.test/rest/services/moodle-services',
             new token_authenticator('tkn'),
@@ -69,7 +75,8 @@ final class api_client_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\api\api_client::get
      */
     public function test_get_unauthorized_throws(): void {
-        $fake = $this->make_fake_curl('{"title":"Unauthorized"}', 401, "HTTP/1.1 401 Unauthorized\r\n\r\n");
+        $curlhelper = new curl_helper();
+        $fake = $curlhelper->make_fake_curl('{"title":"Unauthorized"}', 401, "HTTP/1.1 401 Unauthorized\r\n\r\n");
         $client = new api_client(
             'https://example.test/rest/services/moodle-services',
             new token_authenticator('tkn'),
@@ -88,7 +95,8 @@ final class api_client_test extends \advanced_testcase {
      */
     public function test_get_rate_limited_throws_and_retry_after(): void {
         $headers = "HTTP/1.1 429 Too Many Requests\r\nRetry-After: 2\r\n\r\n";
-        $fake = $this->make_fake_curl('quota', 429, $headers);
+        $curlhelper = new curl_helper();
+        $fake = $curlhelper->make_fake_curl('quota', 429, $headers);
         $client = new api_client(
             'https://example.test/rest/services/moodle-services',
             new token_authenticator('tkn'),
@@ -103,83 +111,5 @@ final class api_client_test extends \advanced_testcase {
             $this->assertSame('quota', $e->get_response_body());
             $this->assertSame(2, $e->get_retry_after_seconds());
         }
-    }
-
-    /**
-     * Fake curl implementation for unit tests.
-     *
-     * We extend \curl so api_client can type-hint \curl and we can still inject.
-     */
-    private function make_fake_curl(string $body, int $httpcode, string $rawheaders = ''): \curl {
-        return new class ($body, $httpcode, $rawheaders) extends \curl {
-            /** @var string */
-            private string $body;
-
-            /** @var int */
-            private int $httpcode;
-
-            /** @var string */
-            private string $rawheaders;
-
-            /** @var array<int,string> Captured headers set by api_client */
-            public array $setheaders = [];
-
-            /** @var string Last requested URL */
-            public string $lasturl = '';
-
-            /**
-             * Constructor.
-             *
-             * @param string $body Response body to return.
-             * @param int $httpcode HTTP code to report via get_info().
-             * @param string $rawheaders Raw response headers to return via getResponse().
-             */
-            public function __construct(string $body, int $httpcode, string $rawheaders) {
-                $this->body = $body;
-                $this->httpcode = $httpcode;
-                $this->rawheaders = $rawheaders;
-            }
-
-            /**
-             * Capture headers set by api_client.
-             *
-             * @param string $header Header line like "X-MoodleAuthToken: abc".
-             * @return void
-             */
-            public function setHeader($header): void {
-                $this->setheaders[] = (string)$header;
-            }
-
-            /**
-             * Fake GET.
-             *
-             * @param string $url URL.
-             * @param array<mixed> $params Params (ignored).
-             * @param array<mixed> $options Options (ignored).
-             * @return string
-             */
-            public function get($url, $params = [], $options = []): string {
-                $this->lasturl = (string)$url;
-                return $this->body;
-            }
-
-            /**
-             * Return fake curl info.
-             *
-             * @return array<string,mixed>
-             */
-            public function get_info(): array {
-                return ['http_code' => $this->httpcode];
-            }
-
-            /**
-             * Return raw response headers.
-             *
-             * @return string
-             */
-            public function getResponse(): string {
-                return $this->rawheaders;
-            }
-        };
     }
 }

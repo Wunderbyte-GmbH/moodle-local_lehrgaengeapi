@@ -33,6 +33,7 @@ $string['intervalteilnehmer'] = 'Sync interval: Teilnehmer (seconds)';
 $string['intervalteilnehmerdesc'] = 'How often the scheduled task should sync Teilnehmer for Lehrgänge.';
 $string['pluginname'] = 'Lehrgaenge API';
 $string['settingsheading'] = 'External API settings';
+$string['tasksynclehrgaenge'] = 'Sync Lehrgaenge (external API)';
 $string['timeout'] = 'Request timeout (seconds)';
 $string['timeoutdesc'] = 'HTTP request timeout in seconds for external API calls.';
 $string['token'] = 'API token';
