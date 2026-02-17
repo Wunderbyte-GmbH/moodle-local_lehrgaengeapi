@@ -25,8 +25,10 @@ flowchart TD
   RepoUser --> DB
 
   %% Moodle updates
+  Service --> Category["Default Course Category<br/>(moodlecourse.defaultcategory)"]
   Service --> MoodleCourses(["Moodle Course API (create/update)"])
   Service --> MoodleUsers(["Moodle User API (create/update)"])
+  Category --> MoodleCourses
 
   %% Responses & errors
   Client -->|2xx| Response["api_response (status/body/headers)"]

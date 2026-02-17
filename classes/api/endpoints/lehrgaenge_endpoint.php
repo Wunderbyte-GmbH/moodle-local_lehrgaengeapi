@@ -42,7 +42,7 @@ use local_lehrgaengeapi\api\exceptions\api_exception;
  * @copyright 2026 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-final class lehrgaenge_endpoint {
+final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
     /**
      * API client.
      * @var api_client

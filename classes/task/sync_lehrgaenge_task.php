@@ -62,11 +62,9 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
         }
 
         try {
-            $endpoint = factory::lehrgaenge_endpoint();
-            $items = $endpoint->list();
-            $count = is_array($items) ? count($items) : 0;
-
-            mtrace('local_lehrgaengeapi: fetched lehrgaenge count: ' . $count);
+            $service = factory::lehrgaenge_sync_service();
+            $summary = $service->sync();
+            mtrace('local_lehrgaengeapi: lehrgaenge sync summary: ' . json_encode($summary));
         } catch (api_rate_limited_exception $e) {
             $retry = method_exists($e, 'get_retry_after_seconds') ? $e->get_retry_after_seconds() : null;
             mtrace('local_lehrgaengeapi: rate limited (429). Retry-After=' . ($retry ?? 'n/a'));
