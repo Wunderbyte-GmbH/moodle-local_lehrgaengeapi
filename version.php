@@ -27,6 +27,6 @@ defined('MOODLE_INTERNAL') || die();
 $plugin->component = 'local_lehrgaengeapi';
 $plugin->release = '0.2.5';
 $plugin->supported = [405, 500];
-$plugin->version = 2026021601;
+$plugin->version = 2026021602;
 $plugin->requires = 2022112800;
 $plugin->maturity = MATURITY_STABLE;

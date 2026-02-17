@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/lehrgaengeapi/db" VERSION="2026021700" COMMENT="XMLDB file for local_lehrgaengeapi"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+
+  <TABLES>
+
+    <TABLE NAME="local_lehrgaengeapi_coursemap" COMMENT="Maps external Lehrgang IDs to Moodle course IDs">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" COMMENT="Primary key"/>
+        <FIELD NAME="externalid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="External Lehrgang.id"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle course.id (nullable until linked)"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Creation timestamp"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Last modification timestamp"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="externalid_uix" UNIQUE="true" FIELDS="externalid"/>
+        <INDEX NAME="courseid_ix" UNIQUE="false" FIELDS="courseid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_lehrgaengeapi_usermap" COMMENT="Maps external participant initialId to Moodle user IDs">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" COMMENT="Primary key"/>
+        <FIELD NAME="externalinitialid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="External Teilnehmer.initialId"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user.id (nullable until linked)"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Creation timestamp"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Last modification timestamp"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="externalinitialid_uix" UNIQUE="true" FIELDS="externalinitialid"/>
+        <INDEX NAME="userid_ix" UNIQUE="false" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>
