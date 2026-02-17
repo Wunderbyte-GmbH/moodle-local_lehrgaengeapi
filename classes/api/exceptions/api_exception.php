@@ -50,7 +50,7 @@ class api_exception extends \moodle_exception {
      * @param string $message Human-readable error message.
      * @param int|null $httpstatus HTTP status code if known.
      * @param string|null $responsebody Raw response body if available.
-     * @param array<string,string> $responseheaders Response headers if available.
+     * @param array $responseheaders Response headers if available.
      * @param \Throwable|null $previous Previous exception.
      */
     public function __construct(
