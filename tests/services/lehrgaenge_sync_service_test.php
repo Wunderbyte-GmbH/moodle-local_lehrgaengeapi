@@ -25,6 +25,8 @@
 
 namespace local_lehrgaengeapi;
 
+use local_lehrgaengeapi\local\course\course_creator;
+
 defined('MOODLE_INTERNAL') || die();
 
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
@@ -58,7 +60,9 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         ]);
 
         $repo = new coursemap_repository();
-        $service = new lehrgaenge_sync_service($endpoint, $repo);
+        $creator = new course_creator();
+
+        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
 
         $summary = $service->sync();
 
@@ -67,7 +71,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $this->assertSame(1, $summary['total']);
 
         $course = $DB->get_record('course', ['idnumber' => 'LG-100'], '*', MUST_EXIST);
-        $this->assertSame('Atemschutzgeräteträgerlehrgang', $course->fullname);
+        $this->assertSame('LG-100', $course->fullname);
         $this->assertSame('AGT', $course->shortname);
 
         $map = $repo->get_by_externalid('LG-100');
@@ -100,7 +104,9 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         ]);
 
         $repo = new coursemap_repository();
-        $service = new lehrgaenge_sync_service($endpoint, $repo);
+        $creator = new course_creator();
+
+        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
 
         $before = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 
@@ -149,8 +155,9 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
 
         $repo = new coursemap_repository();
         $repo->set_courseid('LG-300', (int)$course->id);
+        $creator = new course_creator();
 
-        $service = new lehrgaenge_sync_service($endpoint, $repo);
+        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
 
         $before = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 

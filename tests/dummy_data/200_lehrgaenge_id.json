@@ -1,0 +1,21 @@
+{
+  "id": "LG-2025-000174",
+  "typ": "KREIS",
+  "bezeichnung": "Atemschutzgeräteträgerlehrgang",
+  "kurzbezeichnung": "AGT",
+  "startZeit": "08:30",
+  "endZeit": "16:30",
+  "ort": "FTZ Bröckehausen",
+  "startTag": "2025-03-10",
+  "endTag": "2025-03-14",
+  "anmeldeschluss": "2025-02-24",
+  "maxAnzahlTeilnehmer": 12,
+  "isLehrgangLocked": true,
+  "lehrgangstage": [
+    { "datum": "2025-03-10", "active": true },
+    { "datum": "2025-03-11", "active": true },
+    { "datum": "2025-03-12", "active": true },
+    { "datum": "2025-03-13", "active": true },
+    { "datum": "2025-03-14", "active": true }
+  ]
+}

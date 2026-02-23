@@ -1,0 +1,6 @@
+{
+  "id": "1c2c0d2c-9b02-4f6b-a6e3-2e6d2b2b0e11",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "Missing or invalid X-MoodleAuthToken header."
+}

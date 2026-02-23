@@ -24,9 +24,11 @@
 
 namespace local_lehrgaengeapi\local\services;
 
+use core_course_category;
 use stdClass;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
+use local_lehrgaengeapi\local\course\course_creator;
 
 /**
  * Lehrgaenge sync service.
@@ -42,15 +44,23 @@ final class lehrgaenge_sync_service {
     /** @var coursemap_repository */
     private coursemap_repository $coursemap;
 
+    /** @var course_creator */
+    private course_creator $coursecreator;
+
     /**
      * Constructor.
      *
      * @param lehrgaenge_endpoint_interface $endpoint Endpoint wrapper.
      * @param coursemap_repository $coursemap Course mapping repo.
      */
-    public function __construct(lehrgaenge_endpoint_interface $endpoint, coursemap_repository $coursemap) {
+    public function __construct(
+        lehrgaenge_endpoint_interface $endpoint,
+        coursemap_repository $coursemap,
+        course_creator $coursecreator
+    ) {
         $this->endpoint = $endpoint;
         $this->coursemap = $coursemap;
+        $this->coursecreator = $coursecreator;
     }
 
     /**
@@ -60,27 +70,43 @@ final class lehrgaenge_sync_service {
      * @throws \Throwable
      */
     public function sync(): array {
+        global $DB;
         $items = $this->endpoint->list();
         $total = is_array($items) ? count($items) : 0;
 
         $created = 0;
         $skipped = 0;
 
+        $defaultcatid = (int)core_course_category::get_default()->id;
+
         foreach ($items as $item) {
             if (!is_array($item)) {
-                continue;
-            }
-            $externalid = isset($item['id']) ? (string)$item['id'] : '';
-            if ($externalid === '') {
+                $skipped++;
                 continue;
             }
 
-            $result = $this->sync_one($externalid, $item);
-            if ($result === 'created') {
-                $created++;
-            } else {
+            $externalid = (string)($item['id'] ?? '');
+            if ($externalid === '') {
                 $skipped++;
+                continue;
             }
+
+            // Check if course exists by idnumber (we use external id as idnumber).
+            $existing = $DB->get_record('course', ['idnumber' => $externalid], '*', IGNORE_MISSING);
+
+            if ($existing) {
+                $this->coursemap->set_courseid($externalid, (int)$existing->id);
+                $skipped++;
+                continue;
+            }
+
+            $fullname = (string)($externalid);
+            $shortname = (string)($item['kurzbezeichnung'] ?? $externalid);
+
+            $course = $this->coursecreator->create($defaultcatid, $fullname, $shortname, $externalid);
+
+            $this->coursemap->set_courseid($externalid, (int)$course->id);
+            $created++;
         }
 
         return [

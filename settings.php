@@ -29,53 +29,71 @@ $componentname = 'local_lehrgaengeapi';
 
 if ($hassiteconfig) {
     $settings = new admin_settingpage($componentname, get_string('pluginname', $componentname));
-
     $ADMIN->add('localplugins', $settings);
 
-    $settings->add(new admin_setting_heading(
-        $componentname . '/settings_heading',
-        get_string('settingsheading', $componentname),
-        ''
-    ));
+    if ($ADMIN->fulltree) {
+        $settings->add(new admin_setting_heading(
+            $componentname . '/settings_heading',
+            get_string('settingsheading', $componentname),
+            ''
+        ));
 
-    $settings->add(new admin_setting_configtext(
-        $componentname . '/baseurl',
-        get_string('baseurl', $componentname),
-        get_string('baseurldesc', $componentname),
-        '',
-        PARAM_URL
-    ));
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/baseurl',
+            get_string('baseurl', $componentname),
+            get_string('baseurldesc', $componentname),
+            '',
+            PARAM_URL
+        ));
 
-    // Password-masked input in UI; still stored in config DB.
-    $settings->add(new admin_setting_configpasswordunmask(
-        $componentname . '/token',
-        get_string('token', $componentname),
-        get_string('tokendesc', $componentname),
-        ''
-    ));
+        $settings->add(new admin_setting_configpasswordunmask(
+            $componentname . '/token',
+            get_string('token', $componentname),
+            get_string('tokendesc', $componentname),
+            ''
+        ));
 
-    $settings->add(new admin_setting_configtext(
-        $componentname . '/timeout',
-        get_string('timeout', $componentname),
-        get_string('timeoutdesc', $componentname),
-        '30',
-        PARAM_INT
-    ));
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/timeout',
+            get_string('timeout', $componentname),
+            get_string('timeoutdesc', $componentname),
+            30,
+            PARAM_INT
+        ));
 
-    // Intervals: keep them separate per job.
-    $settings->add(new admin_setting_configtext(
-        $componentname . '/interval_lehrgaenge',
-        get_string('intervallehrgaenge', $componentname),
-        get_string('intervallehrgaengedesc', $componentname),
-        '900', // 15 minutes default
-        PARAM_INT
-    ));
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/interval_lehrgaenge',
+            get_string('intervallehrgaenge', $componentname),
+            get_string('intervallehrgaengedesc', $componentname),
+            900,
+            PARAM_INT
+        ));
 
-    $settings->add(new admin_setting_configtext(
-        $componentname . '/interval_teilnehmer',
-        get_string('intervalteilnehmer', $componentname . ''),
-        get_string('intervalteilnehmerdesc', $componentname),
-        '3600', // 1 hour default
-        PARAM_INT
-    ));
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/interval_teilnehmer',
+            get_string('intervalteilnehmer', $componentname),
+            get_string('intervalteilnehmerdesc', $componentname),
+            3600,
+            PARAM_INT
+        ));
+
+        global $DB;
+        $courses = $DB->get_records('course', null, 'fullname ASC', 'id, fullname, shortname');
+
+        $courseoptions = [0 => get_string('none')];
+        foreach ($courses as $c) {
+            if ((int)$c->id === SITEID) {
+                continue;
+            }
+            $courseoptions[(int)$c->id] = format_string($c->fullname) . ' (' . $c->shortname . ')';
+        }
+
+        $settings->add(new admin_setting_configselect_autocomplete(
+            $componentname . '/targetcourseid',
+            'targetcourseid',
+            'targetcourseiddesc',
+            0,
+            $courseoptions
+        ));
+    }
 }

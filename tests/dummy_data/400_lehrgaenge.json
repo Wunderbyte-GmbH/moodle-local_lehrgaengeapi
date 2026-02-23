@@ -1,0 +1,6 @@
+{
+  "id": "6778c422-854b-48b7-af19-8a445edb5235",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "searchCriteria.lehrgangVon must be <= searchCriteria.lehrgangBis"
+}

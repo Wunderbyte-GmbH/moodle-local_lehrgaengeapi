@@ -1,0 +1,91 @@
+[
+  {
+    "id": "FD-EXT-X-2025",
+    "personalnummer": "",
+    "initialId": "P-00004561",
+    "organisation": { "id": "ORG-0007", "name": "FF Bröckehausen" },
+    "anrede": "Herr",
+    "nachname": "Müller",
+    "vorname": "Max",
+    "geschlecht": "MALE",
+    "emailPrivat": "max.mueller@example.com",
+    "emailBusiness": "m.mueller@ff-broeckehausen.example",
+    "geburtsdatum": "1994-11-03",
+    "plz": "12345",
+    "ort": "Bröckehausen",
+    "status": "S018_ANGEMELDET_KREIS",
+    "plausibilitaetStatus": "PLAUSIBILITAET_OK",
+    "isExtern": true,
+    "ausbildungen": [
+      {
+        "bezeichnung": "Sprechfunker",
+        "kurzBezeichnung": "FUNK",
+        "von": "2022-04-01",
+        "bis": "2022-04-03",
+        "status": "BESTANDEN"
+      }
+    ]
+  },
+  {
+    "id": "FD-INT-T-000112",
+    "personalnummer": "47110815",
+    "initialId": "P-00001002",
+    "organisation": { "id": "ORG-0007", "name": "FF Bröckehausen" },
+    "anrede": "Frau",
+    "nachname": "Schneider",
+    "vorname": "Lea",
+    "geschlecht": "FEMALE",
+    "emailPrivat": "lea.schneider@example.com",
+    "emailBusiness": "l.schneider@ff-broeckehausen.example",
+    "geburtsdatum": "1998-02-19",
+    "plz": "12345",
+    "ort": "Bröckehausen",
+    "status": "S033_EINBERUFEN_KREIS",
+    "plausibilitaetStatus": "PLAUSIBILITAET_BEDINGT_ERFUELLT",
+    "isExtern": false,
+    "ausbildungen": [
+      {
+        "bezeichnung": "Truppmann Teil 1",
+        "kurzBezeichnung": "TM1",
+        "von": "2021-09-10",
+        "bis": "2021-10-02",
+        "status": "BESTANDEN"
+      },
+      {
+        "bezeichnung": "Atemschutzübungsstrecke",
+        "kurzBezeichnung": "ASÜ",
+        "von": "2024-10-05",
+        "bis": "2024-10-05",
+        "status": "TEILGENOMMEN"
+      }
+    ]
+  },
+  {
+    "id": "FD-EXT-X-2026",
+    "personalnummer": "",
+    "initialId": "P-00004561",
+    "organisation": { "id": "ORG-0007", "name": "FF Bröckehausen" },
+    "anrede": "Herr",
+    "nachname": "Müller",
+    "vorname": "Max",
+    "geschlecht": "MALE",
+    "emailPrivat": "max.mueller@example.com",
+    "emailBusiness": "m.mueller@ff-broeckehausen.example",
+    "geburtsdatum": "1994-11-03",
+    "plz": "12345",
+    "ort": "Bröckehausen",
+    "status": "S018_ANGEMELDET_KREIS",
+    "plausibilitaetStatus": "PLAUSIBILITAET_OK",
+    "isExtern": true,
+    "ausbildungen": [
+      {
+        "bezeichnung": "Sprechfunker",
+        "kurzBezeichnung": "FUNK",
+        "von": "2022-04-01",
+        "bis": "2022-04-03",
+        "status": "BESTANDEN"
+      }
+    ]
+  },
+
+]

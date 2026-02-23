@@ -1,0 +1,65 @@
+[
+  {
+    "id": "FD-EXT-X-2025",
+    "typ": "KREIS",
+    "bezeichnung": "Atemschutzgeräteträgerlehrgang",
+    "kurzbezeichnung": "AGT",
+    "startZeit": "08:30",
+    "endZeit": "16:30",
+    "ort": "FTZ Bröckehausen",
+    "startTag": "2025-03-10",
+    "endTag": "2025-03-14",
+    "anmeldeschluss": "2025-02-24",
+    "maxAnzahlTeilnehmer": 12,
+    "isLehrgangLocked": true,
+    "lehrgangstage": [
+      { "datum": "2025-03-10", "active": true },
+      { "datum": "2025-03-11", "active": true },
+      { "datum": "2025-03-12", "active": true },
+      { "datum": "2025-03-13", "active": true },
+      { "datum": "2025-03-14", "active": true }
+    ]
+  },
+  {
+    "id": "FD-INT-X-2025",
+    "typ": "STANDORT",
+    "bezeichnung": "Maschinistenlehrgang",
+    "kurzbezeichnung": "MASCH",
+    "startZeit": "09:00",
+    "endZeit": "17:00",
+    "ort": "Ausbildungszentrum Süd",
+    "startTag": "2025-06-02",
+    "endTag": "2025-06-06",
+    "anmeldeschluss": "2025-05-16",
+    "maxAnzahlTeilnehmer": 16,
+    "isLehrgangLocked": false,
+    "lehrgangstage": [
+      { "datum": "2025-06-02", "active": true },
+      { "datum": "2025-06-03", "active": true },
+      { "datum": "2025-06-04", "active": true },
+      { "datum": "2025-06-05", "active": true },
+      { "datum": "2025-06-06", "active": true }
+    ]
+  },
+  {
+    "id": "FD-EXT-X-2026",
+    "typ": "KREIS",
+    "bezeichnung": "Atemschutzgeräteträgerlehrgang",
+    "kurzbezeichnung": "AGT",
+    "startZeit": "08:30",
+    "endZeit": "16:30",
+    "ort": "FTZ Bröckehausen",
+    "startTag": "2025-03-10",
+    "endTag": "2025-03-14",
+    "anmeldeschluss": "2025-02-24",
+    "maxAnzahlTeilnehmer": 12,
+    "isLehrgangLocked": true,
+    "lehrgangstage": [
+      { "datum": "2025-03-10", "active": true },
+      { "datum": "2025-03-11", "active": true },
+      { "datum": "2025-03-12", "active": true },
+      { "datum": "2025-03-13", "active": true },
+      { "datum": "2025-03-14", "active": true }
+    ]
+  }
+]

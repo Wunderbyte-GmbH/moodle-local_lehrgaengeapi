@@ -1,0 +1,27 @@
+{
+  "id": "TN-EXT-000991",
+  "personalnummer": "",
+  "initialId": "P-00004561",
+  "organisation": { "id": "ORG-0007", "name": "FF Bröckehausen" },
+  "anrede": "Herr",
+  "nachname": "Müller",
+  "vorname": "Max",
+  "geschlecht": "MALE",
+  "emailPrivat": "max.mueller@example.com",
+  "emailBusiness": "m.mueller@ff-broeckehausen.example",
+  "geburtsdatum": "1994-11-03",
+  "plz": "12345",
+  "ort": "Bröckehausen",
+  "status": "S018_ANGEMELDET_KREIS",
+  "plausibilitaetStatus": "PLAUSIBILITAET_OK",
+  "isExtern": true,
+  "ausbildungen": [
+    {
+      "bezeichnung": "Sprechfunker",
+      "kurzBezeichnung": "FUNK",
+      "von": "2022-04-01",
+      "bis": "2022-04-03",
+      "status": "BESTANDEN"
+    }
+  ]
+}
