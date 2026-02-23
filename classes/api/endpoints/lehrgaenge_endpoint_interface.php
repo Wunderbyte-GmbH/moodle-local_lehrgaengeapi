@@ -25,7 +25,6 @@
 
 namespace local_lehrgaengeapi\api\endpoints;
 
-use local_lehrgaengeapi\api\api_client;
 use local_lehrgaengeapi\api\exceptions\api_exception;
 
 /**

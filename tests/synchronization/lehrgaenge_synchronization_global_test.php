@@ -77,7 +77,6 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
         $endpoint = $this->fake_endpoint($items);
         $repo = new coursemap_repository();
         $creator = new course_creator();
-
         $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
 
         $summary = $service->sync();
@@ -85,6 +84,27 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
         $this->assertSame(3, $summary['total']);
         $this->assertSame(3, $summary['created']);
         $this->assertSame(0, $summary['skipped']);
+
+        foreach ($items as $item) {
+            $externalid = (string)$item['id'];
+
+            $course = $DB->get_record('course', ['idnumber' => $externalid], '*', MUST_EXIST);
+
+            // Year is the last dash-separated part in your current parser.
+            $parts = explode('-', $externalid);
+            $year = (int)array_pop($parts);
+
+            $this->assertGreaterThan(0, $year, 'Year could not be parsed from idnumber: ' . $externalid);
+
+            $expectedstart = make_timestamp($year, 1, 1, 0, 0, 0);
+            $expectedend   = make_timestamp($year, 12, 31, 23, 59, 59);
+
+            $this->assertSame($expectedstart, (int)$course->startdate, 'Wrong startdate for ' . $externalid);
+            $this->assertSame($expectedend, (int)$course->enddate, 'Wrong enddate for ' . $externalid);
+
+            // Optional: ensure some template-derived values exist (won't hurt).
+            $this->assertSame('topics', (string)$course->format);
+        }
 
         $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':ext'), ['ext' => '%EXT-%']));
         $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':int'), ['int' => '%INT-%']));

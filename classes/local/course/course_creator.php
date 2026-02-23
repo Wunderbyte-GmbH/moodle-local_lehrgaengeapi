@@ -58,6 +58,12 @@ final class course_creator {
         // Start with template-derived defaults (if available).
         $data = $this->build_course_data_from_template($templatecourse);
 
+        $year = (int)$identifications['year'];
+        if ($year > 0) {
+            $data->startdate = make_timestamp($year, 1, 1, 0, 0, 0);
+            $data->enddate   = make_timestamp($year, 12, 31, 23, 59, 59);
+        }
+
         $data->category  = $targetcategoryid;
         $data->fullname  = $fullname;
         $data->shortname = $idnumber;
