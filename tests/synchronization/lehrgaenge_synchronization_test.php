@@ -27,6 +27,7 @@ namespace local_lehrgaengeapi\synchronization;
 
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\course\course_creator;
+use local_lehrgaengeapi\local\services\participant_course_assigner;
 use local_lehrgaengeapi\local\services\participants_sync_service;
 use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
