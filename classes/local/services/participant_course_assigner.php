@@ -24,8 +24,13 @@
 
 namespace local_lehrgaengeapi\local\services;
 
+use completion_completion;
 use context_course;
 use local_lehrgaengeapi\local\repository\usermap_repository;
+use local_lehrgaengeapi\local\lehrgang_status\participant_status_handler_resolver;
+use local_lehrgaengeapi\local\lehrgang_status\angemeldet_participant_status_handler;
+use local_lehrgaengeapi\local\lehrgang_status\bestanden_participant_status_handler;
+use local_lehrgaengeapi\local\lehrgang_status\noop_participant_status_handler;
 
 /**
  * Ensures participants are enrolled in a Moodle course.
@@ -38,11 +43,19 @@ final class participant_course_assigner {
     /** @var usermap_repository */
     private usermap_repository $usermap;
 
+    /** @var participant_status_handler_resolver */
+    private participant_status_handler_resolver $resolver;
+
     /**
      * Constructor.
      */
     public function __construct() {
         $this->usermap = new usermap_repository();
+        $this->resolver = new participant_status_handler_resolver(
+            new angemeldet_participant_status_handler(),
+            new bestanden_participant_status_handler(),
+            new noop_participant_status_handler()
+        );
     }
 
     /**
@@ -55,10 +68,14 @@ final class participant_course_assigner {
     public function assign(array $participants, int $courseid): array {
         global $DB;
 
+        $total = count($participants);
+        $skipped = 0;
+        $noop = 0;
         $enrolled = 0;
         $alreadyenrolled = 0;
-        $skipped = 0;
-        $total = count($participants);
+        $completed = 0;
+
+        $context = context_course::instance($courseid);
 
         // Get manual enrol plugin + instance.
         $plugin = enrol_get_plugin('manual');
@@ -70,6 +87,14 @@ final class participant_course_assigner {
                 'total' => $total,
             ];
         }
+
+        $manualinstance = $DB->get_record(
+            'enrol',
+            ['courseid' => $courseid, 'enrol' => 'manual'],
+            '*',
+            IGNORE_MISSING
+        );
+
 
         $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual'], '*', IGNORE_MISSING);
         if (!$instance) {
@@ -107,20 +132,68 @@ final class participant_course_assigner {
                 continue;
             }
 
-            if (is_enrolled(context_course::instance($courseid), $userid, '', true)) {
-                $alreadyenrolled++;
+            $status = (string)($p['status'] ?? '');
+            $handler = $this->resolver->resolve($status);
+            $action = $handler->process();
+
+            if (!$action->should_assign() && !$action->should_complete()) {
+                $noop++;
                 continue;
             }
 
-            $plugin->enrol_user($instance, $userid, (int)$instance->roleid);
-            $enrolled++;
+            if ($action->should_assign()) {
+                if (is_enrolled($context, $userid, '', true)) {
+                    $alreadyenrolled++;
+                } else if ($plugin && $manualinstance) {
+                    $plugin->enrol_user($manualinstance, $userid, (int)$manualinstance->roleid);
+                    $enrolled++;
+                }
+            }
+
+            if ($action->should_complete()) {
+                if ($this->mark_course_completed($userid, $courseid)) {
+                    $completed++;
+                }
+            }
         }
 
         return [
             'enrolled' => $enrolled,
             'alreadyenrolled' => $alreadyenrolled,
+            'completed' => $completed,
+            'noop' => $noop,
             'skipped' => $skipped,
             'total' => $total,
         ];
+    }
+
+    /**
+     * Mark course completion for a user (if possible).
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return bool True if completion was marked or already complete.
+     */
+    private function mark_course_completed(int $userid, int $courseid): bool {
+        global $DB;
+
+        // Course completion record helper class.
+        $completion = new completion_completion([
+            'userid' => $userid,
+            'course' => $courseid,
+        ]);
+
+        // If already completed, nothing to do.
+        if (!empty($completion->timecompleted)) {
+            return true;
+        }
+
+        $completion->mark_complete(time());
+        $record = $DB->get_record('course_completions', [
+            'userid' => $userid,
+            'course' => $courseid,
+        ], 'timecompleted', IGNORE_MISSING);
+
+        return !empty($record->timecompleted);
     }
 }

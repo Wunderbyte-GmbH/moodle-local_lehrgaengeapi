@@ -49,6 +49,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
     public function test_sync_creates_courses_from_dummydata_fixture(): void {
         global $DB;
         $this->resetAfterTest(true);
+        set_config('enablecompletion', 1);
 
         // Create a template course and set it as global master.
         $category = $this->getDataGenerator()->create_category();
@@ -59,6 +60,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             'summary' => 'LOCAL TEMPLATE SUMMARY',
             'format' => 'topics',
             'numsections' => 7,
+            'enablecompletion' => 1,
         ]);
 
         $template = $this->getDataGenerator()->create_course([
@@ -68,6 +70,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             'summary' => 'TEMPLATE SUMMARY',
             'format' => 'topics',
             'numsections' => 7,
+            'enablecompletion' => 1,
         ]);
 
         set_config('targetcourseid', (int)$template->id, 'local_lehrgaengeapi');
@@ -114,14 +117,53 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
 
         // Each user should be enrolled in each synced course.
         foreach ($courses as $course) {
+            $coursecontext = \context_course::instance((int)$course->id);
+
             $this->assertTrue(
-                is_enrolled(\context_course::instance((int)$course->id), (int)$user1->id),
+                is_enrolled($coursecontext, (int)$user1->id),
                 'User P-00004561 not enrolled in course ' . $course->idnumber
             );
             $this->assertTrue(
-                is_enrolled(\context_course::instance((int)$course->id), (int)$user2->id),
+                is_enrolled($coursecontext, (int)$user2->id),
                 'User P-00001002 not enrolled in course ' . $course->idnumber
             );
+
+            // User2 (BESTANDEN) should be marked complete.
+            $u2completion = $DB->get_record(
+                'course_completions',
+                ['userid' => (int)$user2->id, 'course' => (int)$course->id],
+                '*',
+                IGNORE_MISSING
+            );
+
+            $this->assertNotFalse(
+                $u2completion,
+                'Expected a course_completions record for user P-00001002 in course ' . $course->idnumber
+            );
+            $this->assertNotEmpty(
+                (int)$u2completion->timecompleted,
+                'Expected user P-00001002 to be completed in course ' . $course->idnumber
+            );
+
+            // User1 (ANGEMELDET) should NOT be marked complete.
+            $u1completion = $DB->get_record(
+                'course_completions',
+                ['userid' => (int)$user1->id, 'course' => (int)$course->id],
+                '*',
+                IGNORE_MISSING
+            );
+
+            if ($u1completion) {
+                $this->assertEmpty(
+                    (int)$u1completion->timecompleted,
+                    'User P-00004561 should not be completed in course ' . $course->idnumber
+                );
+            } else {
+                $this->assertFalse(
+                    $u1completion,
+                    'No completion record for user P-00004561 is also valid in course ' . $course->idnumber
+                );
+            }
         }
 
         foreach ($items as $item) {
@@ -149,7 +191,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':int'), ['int' => '%INT-%']));
 
         // Second run should skip.
-        $service = new lehrgaenge_sync_service(
+        $service = new lehrgaenge_sync_service (
             $endpoint,
             $repo,
             $coursecreator,

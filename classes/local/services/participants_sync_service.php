@@ -82,7 +82,7 @@ final class participants_sync_service {
                 'total' => 0,
             ];
         }
-        $usersummary = $this->usercreator->create($participants, $courseid);
+        $usersummary = $this->usercreator->create($participants);
         $assignsummary = $this->assigner->assign($participants, $courseid);
 
         return [

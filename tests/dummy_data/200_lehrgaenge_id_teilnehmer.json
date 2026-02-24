@@ -40,7 +40,7 @@
     "geburtsdatum": "1998-02-19",
     "plz": "12345",
     "ort": "Bröckehausen",
-    "status": "S033_EINBERUFEN_KREIS",
+    "status": "S018_BESTANDEN_KREIS",
     "plausibilitaetStatus": "PLAUSIBILITAET_BEDINGT_ERFUELLT",
     "isExtern": false,
     "ausbildungen": [
@@ -74,7 +74,7 @@
     "geburtsdatum": "1994-11-03",
     "plz": "12345",
     "ort": "Bröckehausen",
-    "status": "S018_ANGEMELDET_KREIS",
+    "status": "S033_EINBERUFEN_KREIS",
     "plausibilitaetStatus": "PLAUSIBILITAET_OK",
     "isExtern": true,
     "ausbildungen": [
