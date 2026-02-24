@@ -35,13 +35,17 @@ use stdClass;
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class users_creator {
-
     /** @var usermap_repository */
     private usermap_repository $usermap;
 
+    /**
+     * Constructor.
+     * @return void
+     */
     public function __construct() {
         $this->usermap = new usermap_repository();
     }
+
     /**
      * Create a Moodle users in a given category.
      *
@@ -64,12 +68,9 @@ final class users_creator {
 
             $initialid = trim((string)($p['initialId'] ?? ''));
             if ($initialid === '') {
-                // Without initialId we cannot map reliably.
                 $skipped++;
                 continue;
             }
-
-            // 1) Mapping lookup.
             $map = $this->usermap->ensure($initialid);
 
             if (!empty($map->userid)) {
@@ -78,13 +79,9 @@ final class users_creator {
                     $existing++;
                     continue;
                 }
-                // mapping points to missing/deleted user -> recreate and update mapping below
             }
 
-            // 2) Optional fallback: find by email (helps if mapping existed but userid empty).
             $email = $this->pick_email($p);
-
-            // Optional fallback: if mapping exists but userid is empty, try to find by email.
             $u = null;
             if ($email !== '') {
                 $u = $DB->get_record('user', ['email' => $email, 'deleted' => 0], '*', IGNORE_MISSING);
@@ -96,7 +93,6 @@ final class users_creator {
                 continue;
             }
 
-            // Create Moodle user.
             $firstname = trim((string)($p['vorname'] ?? ''));
             $lastname  = trim((string)($p['nachname'] ?? ''));
 
@@ -124,11 +120,7 @@ final class users_creator {
                 'firstname'  => $firstname,
                 'lastname'   => $lastname,
                 'email'      => $email,
-
-                // Keep initialId also in idnumber for easy debugging/searching.
-                // Mapping table remains canonical.
                 'idnumber'   => $initialid,
-
                 'city'       => (string)($p['ort'] ?? ''),
                 'country'    => 'DE',
             ];
@@ -152,7 +144,7 @@ final class users_creator {
     /**
      * Always use business email.
      *
-     * @param array<string,mixed> $p
+     * @param array $p
      * @return string
      */
     private function pick_email(array $p): string {
@@ -161,6 +153,8 @@ final class users_creator {
 
     /**
      * Deterministic placeholder email.
+     * @param string $initialid
+     * @return string
      */
     private function placeholder_email(string $initialid): string {
         $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $initialid));
@@ -173,6 +167,8 @@ final class users_creator {
 
     /**
      * Make a safe + unique username based on initialId.
+     * @param string $seed
+     * @return string
      */
     private function make_unique_username(string $seed): string {
         global $DB;
@@ -199,6 +195,8 @@ final class users_creator {
 
     /**
      * Ensure email uniqueness if Moodle disallows duplicates.
+     * @param string $email
+     * @return string
      */
     private function make_unique_email(string $email): string {
         global $DB;

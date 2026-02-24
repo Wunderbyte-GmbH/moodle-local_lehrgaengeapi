@@ -30,6 +30,7 @@ use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint;
 use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
+use local_lehrgaengeapi\local\services\participants_sync_service;
 use local_lehrgaengeapi\local\users\users_creator;
 
 /**
@@ -73,12 +74,13 @@ final class factory {
         $coursemap = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
+        $participantssync = new participants_sync_service($endpoint, $usercreator);
 
         return new lehrgaenge_sync_service(
             $endpoint,
             $coursemap,
             $coursecreator,
-            $usercreator
+            $participantssync
         );
     }
 }

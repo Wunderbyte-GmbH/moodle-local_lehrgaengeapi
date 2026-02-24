@@ -27,6 +27,7 @@ namespace local_lehrgaengeapi\synchronization;
 
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\course\course_creator;
+use local_lehrgaengeapi\local\services\participants_sync_service;
 use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
@@ -55,12 +56,13 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
+        $participantssync = new participants_sync_service($endpoint, $usercreator);
 
         $service = new lehrgaenge_sync_service(
             $endpoint,
             $repo,
             $coursecreator,
-            $usercreator
+            $participantssync
         );
 
         $summary = $service->sync();
@@ -80,12 +82,11 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $this->assertNotNull($map);
             $this->assertSame((int)$course->id, (int)$map->courseid);
         }
-
         $service = new lehrgaenge_sync_service(
             $endpoint,
             $repo,
             $coursecreator,
-            $usercreator
+            $participantssync
         );
 
         $summary = $service->sync();

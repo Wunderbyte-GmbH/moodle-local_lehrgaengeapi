@@ -26,6 +26,8 @@
 namespace local_lehrgaengeapi\synchronization;
 
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
+use local_lehrgaengeapi\local\services\participant_course_assigner;
+use local_lehrgaengeapi\local\services\participants_sync_service;
 use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
@@ -78,11 +80,18 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
+        $participantassigner = new participant_course_assigner();
+        $participantssync = new participants_sync_service(
+            $endpoint,
+            $usercreator,
+            $participantassigner
+        );
+
         $service = new lehrgaenge_sync_service(
             $endpoint,
             $repo,
             $coursecreator,
-            $usercreator
+            $participantssync
         );
 
         $summary = $service->sync();
@@ -90,6 +99,30 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $this->assertSame(3, $summary['total']);
         $this->assertSame(3, $summary['created']);
         $this->assertSame(0, $summary['skipped']);
+
+        $user1 = $DB->get_record('user', ['idnumber' => 'P-00004561'], '*', MUST_EXIST);
+        $user2 = $DB->get_record('user', ['idnumber' => 'P-00001002'], '*', MUST_EXIST);
+
+        $this->assertNotFalse($user1);
+        $this->assertNotFalse($user2);
+
+        // Count synced courses.
+        $courses = [];
+        foreach ($items as $item) {
+            $courses[] = $DB->get_record('course', ['idnumber' => (string)$item['id']], '*', MUST_EXIST);
+        }
+
+        // Each user should be enrolled in each synced course.
+        foreach ($courses as $course) {
+            $this->assertTrue(
+                is_enrolled(\context_course::instance((int)$course->id), (int)$user1->id),
+                'User P-00004561 not enrolled in course ' . $course->idnumber
+            );
+            $this->assertTrue(
+                is_enrolled(\context_course::instance((int)$course->id), (int)$user2->id),
+                'User P-00001002 not enrolled in course ' . $course->idnumber
+            );
+        }
 
         foreach ($items as $item) {
             $externalid = (string)$item['id'];
@@ -116,12 +149,20 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':int'), ['int' => '%INT-%']));
 
         // Second run should skip.
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $coursecreator, $usercreator);
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $participantssync
+        );
         $summary = $service->sync();
 
         $this->assertSame(3, $summary['total']);
         $this->assertSame(0, $summary['created']);
         $this->assertSame(3, $summary['skipped']);
+
+        $this->assertNotFalse($DB->get_record('user', ['idnumber' => 'P-00004561']));
+        $this->assertNotFalse($DB->get_record('user', ['idnumber' => 'P-00001002']));
     }
 
     /**
@@ -149,6 +190,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
      * Fake endpoint that returns fixture items for list().
      *
      * @param array $items Fixture items.
+     * @param array $participantsfixture Fixture participants for each item.
      * @return lehrgaenge_endpoint_interface
      */
     private function fake_endpoint(array $items, $participantsfixture): lehrgaenge_endpoint_interface {
