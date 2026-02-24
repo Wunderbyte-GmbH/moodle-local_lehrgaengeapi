@@ -75,10 +75,10 @@ final class usermap_repository {
     }
 
     /**
-     * Set (or update) Moodle courseid for a given external id.
+     * Set (or update) Moodle userid for a given external initial id.
      *
-     * @param string $externalid External Lehrgang.id.
-     * @param int $courseid Moodle course.id.
+     * @param string $externalinitialid External Lehrgangid initial.
+     * @param int $userid Moodle user.id.
      * @return stdClass Updated mapping row.
      */
     public function set_userid(string $externalinitialid, int $userid): stdClass {

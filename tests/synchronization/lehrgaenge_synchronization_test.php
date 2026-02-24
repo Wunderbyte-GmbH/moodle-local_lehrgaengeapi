@@ -25,10 +25,9 @@
 
 namespace local_lehrgaengeapi\synchronization;
 
-defined('MOODLE_INTERNAL') || die();
-
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\course\course_creator;
+use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
 
@@ -54,9 +53,15 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
 
         $endpoint = $this->fake_endpoint($items);
         $repo = new coursemap_repository();
-        $creator = new course_creator();
+        $coursecreator = new course_creator();
+        $usercreator = new users_creator();
 
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $usercreator
+        );
 
         $summary = $service->sync();
 
@@ -76,7 +81,12 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $this->assertSame((int)$course->id, (int)$map->courseid);
         }
 
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $usercreator
+        );
 
         $summary = $service->sync();
 
@@ -109,42 +119,56 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
     /**
      * Fake endpoint that returns fixture items for list().
      *
-     * @param array<int, array<string,mixed>> $items Fixture items.
+     * @param array $items Fixture items.
      * @return lehrgaenge_endpoint_interface
      */
     private function fake_endpoint(array $items): lehrgaenge_endpoint_interface {
-        return new class($items) implements lehrgaenge_endpoint_interface {
-            /** @var array<int, array<string,mixed>> */
+        return new class ($items) implements lehrgaenge_endpoint_interface {
+            /** @var array */
             private array $items;
 
             /**
              * Constructor.
              *
-             * @param array<int, array<string,mixed>> $items List payload.
+             * @param array $items List payload.
              */
             public function __construct(array $items) {
                 $this->items = $items;
             }
 
             /**
-             * @param array<string,mixed>|string|null $searchcriteria Ignored.
-             * @return array<mixed>
+             * Get list of courses.
+             * @param array $searchcriteria Ignored.
+             * @return array
              */
             public function list($searchcriteria = null): array {
                 return $this->items;
             }
 
-            /** @return array<string,mixed> */
+            /**
+             * Get by id.
+             * @param string $id
+             * @return array
+             */
             public function get_by_id(string $id): array {
                 return [];
             }
 
-            /** @return array<mixed> */
+            /**
+             * Get participants for a given id.
+             * @param string $id
+             * @return array
+             */
             public function participants(string $id): array {
                 return [];
             }
 
-            /** @return array<string,mixed> */
+            /**
+             * Get participant_extern for a given id.
+             * @param string $id
+             * @param string $teilnehmerid
+             * @return array
+             */
             public function participant_extern(string $id, string $teilnehmerid): array {
                 return [];
             }

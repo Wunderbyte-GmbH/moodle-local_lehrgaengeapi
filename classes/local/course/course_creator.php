@@ -24,6 +24,7 @@
 
 namespace local_lehrgaengeapi\local\course;
 
+defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/lib.php');
 
 /**
@@ -94,7 +95,7 @@ final class course_creator {
 
     /**
      * Get the configured global template course (master course).
-     *
+     * @param string $localcourseid
      * @return \stdClass|null
      */
     private function get_local_template_course($localcourseid): \stdClass|null {

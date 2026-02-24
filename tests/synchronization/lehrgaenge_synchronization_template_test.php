@@ -25,9 +25,8 @@
 
 namespace local_lehrgaengeapi\synchronization;
 
-defined('MOODLE_INTERNAL') || die();
-
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
+use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
@@ -39,7 +38,7 @@ use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
  * @copyright 2026 Wunderbyte GmbH
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
+final class lehrgaenge_synchronization_template_test extends \advanced_testcase {
     /**
      * Sync creates courses + mappings from the dummy-data fixture.
      *
@@ -74,10 +73,17 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
         $items = $this->load_json_fixture('200_lehrgaenge.json');
         $this->assertCount(3, $items);
 
-        $endpoint = $this->fake_endpoint($items);
+        $participantsfixture = $this->load_json_fixture('200_lehrgaenge_id_teilnehmer.json');
+        $endpoint = $this->fake_endpoint($items, $participantsfixture);
         $repo = new coursemap_repository();
-        $creator = new course_creator();
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $coursecreator = new course_creator();
+        $usercreator = new users_creator();
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $usercreator
+        );
 
         $summary = $service->sync();
 
@@ -110,7 +116,7 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
         $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':int'), ['int' => '%INT-%']));
 
         // Second run should skip.
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $service = new lehrgaenge_sync_service($endpoint, $repo, $coursecreator, $usercreator);
         $summary = $service->sync();
 
         $this->assertSame(3, $summary['total']);
@@ -124,7 +130,7 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
      * (Named differently to avoid clashing with advanced_testcase::load_fixture()).
      *
      * @param string $filename Fixture filename.
-     * @return array<int, array<string,mixed>>
+     * @return array
      */
     private function load_json_fixture(string $filename): array {
         $path = __DIR__ . '/../dummy_data/' . $filename;
@@ -133,7 +139,7 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
         $json = file_get_contents($path);
         $this->assertNotFalse($json);
 
-        /** @var array<int, array<string,mixed>> $decoded */
+        /** @var array $decoded */
         $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
 
         return $decoded;
@@ -142,42 +148,61 @@ final class lehrgaenge_synchronization_global_test extends \advanced_testcase {
     /**
      * Fake endpoint that returns fixture items for list().
      *
-     * @param array<int, array<string,mixed>> $items Fixture items.
+     * @param array $items Fixture items.
      * @return lehrgaenge_endpoint_interface
      */
-    private function fake_endpoint(array $items): lehrgaenge_endpoint_interface {
-        return new class($items) implements lehrgaenge_endpoint_interface {
-            /** @var array<int, array<string,mixed>> */
+    private function fake_endpoint(array $items, $participantsfixture): lehrgaenge_endpoint_interface {
+        return new class( $items, $participantsfixture) implements lehrgaenge_endpoint_interface {
+            /** @var array */
             private array $items;
+
+            /** @var array */
+            private $participantsfixture;
 
             /**
              * Constructor.
              *
-             * @param array<int, array<string,mixed>> $items List payload.
+             * @param array $items List payload.
+             * @param array $participantsfixture List participants for each item.
              */
-            public function __construct(array $items) {
+            public function __construct(array $items, $participantsfixture) {
                 $this->items = $items;
+                $this->participantsfixture = $participantsfixture;
             }
 
             /**
-             * @param array<string,mixed>|string|null $searchcriteria Ignored.
-             * @return array<mixed>
+             * Get list of courses.
+             * @param array $searchcriteria Ignored.
+             * @return array
              */
             public function list($searchcriteria = null): array {
                 return $this->items;
             }
 
-            /** @return array<string,mixed> */
+            /**
+             * Get by id.
+             * @param string $id
+             * @return array
+             */
             public function get_by_id(string $id): array {
                 return [];
             }
 
-            /** @return array<mixed> */
+            /**
+             * Get participants for a given id.
+             * @param string $id
+             * @return array
+             */
             public function participants(string $id): array {
-                return [];
+                return is_array($this->participantsfixture) ? $this->participantsfixture : [];
             }
 
-            /** @return array<string,mixed> */
+            /**
+             * Get participant_extern for a given id.
+             * @param string $id
+             * @param string $teilnehmerid
+             * @return array
+             */
             public function participant_extern(string $id, string $teilnehmerid): array {
                 return [];
             }

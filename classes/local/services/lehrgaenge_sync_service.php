@@ -29,6 +29,7 @@ use stdClass;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\course\course_creator;
+use local_lehrgaengeapi\local\users\users_creator;
 
 /**
  * Lehrgaenge sync service.
@@ -47,20 +48,27 @@ final class lehrgaenge_sync_service {
     /** @var course_creator */
     private course_creator $coursecreator;
 
+    /** @var users_creator */
+    private users_creator $usercreator;
+
     /**
      * Constructor.
      *
      * @param lehrgaenge_endpoint_interface $endpoint Endpoint wrapper.
      * @param coursemap_repository $coursemap Course mapping repo.
+     * @param course_creator $coursecreator Course creator.
+     * @param users_creator $usercreator User creator.
      */
     public function __construct(
         lehrgaenge_endpoint_interface $endpoint,
         coursemap_repository $coursemap,
-        course_creator $coursecreator
+        course_creator $coursecreator,
+        users_creator $usercreator
     ) {
         $this->endpoint = $endpoint;
         $this->coursemap = $coursemap;
         $this->coursecreator = $coursecreator;
+        $this->usercreator = $usercreator;
     }
 
     /**
@@ -104,6 +112,9 @@ final class lehrgaenge_sync_service {
             $shortname = (string)($item['kurzbezeichnung'] ?? $externalid);
 
             $course = $this->coursecreator->create($defaultcatid, $fullname, $shortname, $externalid);
+
+            $participants = $this->endpoint->participants($externalid);
+            $this->usercreator->create($participants);
 
             $this->coursemap->set_courseid($externalid, (int)$course->id);
             $created++;

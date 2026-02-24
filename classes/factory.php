@@ -27,8 +27,10 @@ namespace local_lehrgaengeapi;
 use local_lehrgaengeapi\api\api_client;
 use local_lehrgaengeapi\api\auth\token_authenticator;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint;
+use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
+use local_lehrgaengeapi\local\users\users_creator;
 
 /**
  * HTTP client for the external API.
@@ -69,6 +71,14 @@ final class factory {
     public static function lehrgaenge_sync_service(): lehrgaenge_sync_service {
         $endpoint = self::lehrgaenge_endpoint();
         $coursemap = new coursemap_repository();
-        return new lehrgaenge_sync_service($endpoint, $coursemap);
+        $coursecreator = new course_creator();
+        $usercreator = new users_creator();
+
+        return new lehrgaenge_sync_service(
+            $endpoint,
+            $coursemap,
+            $coursecreator,
+            $usercreator
+        );
     }
 }

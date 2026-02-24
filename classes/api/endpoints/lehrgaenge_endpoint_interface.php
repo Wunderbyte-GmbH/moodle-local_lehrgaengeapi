@@ -36,7 +36,6 @@ use local_lehrgaengeapi\api\exceptions\api_exception;
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 interface lehrgaenge_endpoint_interface {
-
     /**
      * Receive all courses assigned to the respective organisation.
      *

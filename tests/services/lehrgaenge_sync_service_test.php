@@ -26,12 +26,10 @@
 namespace local_lehrgaengeapi;
 
 use local_lehrgaengeapi\local\course\course_creator;
-
-defined('MOODLE_INTERNAL') || die();
-
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
+use local_lehrgaengeapi\local\users\users_creator;
 
 /**
  * Tests for lehrgaenge_sync_service.
@@ -41,7 +39,6 @@ use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class lehrgaenge_sync_service_test extends \advanced_testcase {
-
     /**
      * Creates a course when none exists and stores mapping.
      *
@@ -60,9 +57,15 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         ]);
 
         $repo = new coursemap_repository();
-        $creator = new course_creator();
+        $coursecreator = new course_creator();
+        $usercreator = new users_creator();
 
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $usercreator
+        );
 
         $summary = $service->sync();
 
@@ -72,7 +75,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
 
         $course = $DB->get_record('course', ['idnumber' => 'LG-100'], '*', MUST_EXIST);
         $this->assertSame('LG-100', $course->fullname);
-        $this->assertSame('AGT', $course->shortname);
+        $this->assertSame('LG-100', $course->shortname);
 
         $map = $repo->get_by_externalid('LG-100');
         $this->assertNotNull($map);
@@ -104,9 +107,15 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         ]);
 
         $repo = new coursemap_repository();
-        $creator = new course_creator();
+        $coursecreator = new course_creator();
+        $usercreator = new users_creator();
 
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $usercreator
+        );
 
         $before = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 
@@ -155,9 +164,15 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
 
         $repo = new coursemap_repository();
         $repo->set_courseid('LG-300', (int)$course->id);
-        $creator = new course_creator();
+        $coursecreator = new course_creator();
+        $usercreator = new users_creator();
 
-        $service = new lehrgaenge_sync_service($endpoint, $repo, $creator);
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            $repo,
+            $coursecreator,
+            $usercreator
+        );
 
         $before = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 
@@ -178,7 +193,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
     /**
      * Create a fake endpoint instance that returns fixed list() data.
      *
-     * @param array<mixed> $items List payload.
+     * @param array $items List payload.
      * @return lehrgaenge_endpoint_interface
      */
     private function fake_endpoint(array $items): lehrgaenge_endpoint_interface {
@@ -189,7 +204,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             /**
              * Constructor.
              *
-             * @param array<mixed> $items Items to return from list().
+             * @param array $items Items to return from list().
              */
             public function __construct(array $items) {
                 $this->items = $items;
@@ -198,8 +213,8 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             /**
              * Return fixed data.
              *
-             * @param array<string,mixed>|string|null $searchcriteria Ignored.
-             * @return array<mixed>
+             * @param array $searchcriteria Ignored.
+             * @return array
              */
             public function list($searchcriteria = null): array {
                 return $this->items;
@@ -209,7 +224,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
              * Not used by these tests.
              *
              * @param string $id Lehrgang ID.
-             * @return array<string,mixed>
+             * @return array
              */
             public function get_by_id(string $id): array {
                 return [];
@@ -219,7 +234,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
              * Not used by these tests.
              *
              * @param string $id Lehrgang ID.
-             * @return array<mixed>
+             * @return array
              */
             public function participants(string $id): array {
                 return [];
@@ -230,7 +245,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
              *
              * @param string $id Lehrgang ID.
              * @param string $teilnehmerid Participant ID.
-             * @return array<string,mixed>
+             * @return array
              */
             public function participant_extern(string $id, string $teilnehmerid): array {
                 return [];
