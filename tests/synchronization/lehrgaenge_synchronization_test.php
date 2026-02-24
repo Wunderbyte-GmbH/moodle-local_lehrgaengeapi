@@ -56,7 +56,13 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
-        $participantssync = new participants_sync_service($endpoint, $usercreator);
+        $participantassigner = new participant_course_assigner();
+
+        $participantssync = new participants_sync_service(
+            $endpoint,
+            $usercreator,
+            $participantassigner
+        );
 
         $service = new lehrgaenge_sync_service(
             $endpoint,

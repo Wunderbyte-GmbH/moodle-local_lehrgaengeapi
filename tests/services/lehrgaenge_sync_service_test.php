@@ -29,6 +29,7 @@ use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
+use local_lehrgaengeapi\local\services\participant_course_assigner;
 use local_lehrgaengeapi\local\services\participants_sync_service;
 use local_lehrgaengeapi\local\users\users_creator;
 
@@ -60,7 +61,13 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
-        $participantssync = new participants_sync_service($endpoint, $usercreator);
+        $participantassigner = new participant_course_assigner();
+
+        $participantssync = new participants_sync_service(
+            $endpoint,
+            $usercreator,
+            $participantassigner
+        );
 
         $service = new lehrgaenge_sync_service(
             $endpoint,
@@ -111,7 +118,13 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
-        $participantssync = new participants_sync_service($endpoint, $usercreator);
+        $participantassigner = new participant_course_assigner();
+
+        $participantssync = new participants_sync_service(
+            $endpoint,
+            $usercreator,
+            $participantassigner
+        );
 
         $service = new lehrgaenge_sync_service(
             $endpoint,
@@ -169,7 +182,13 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $repo->set_courseid('LG-300', (int)$course->id);
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
-        $participantssync = new participants_sync_service($endpoint, $usercreator);
+        $participantassigner = new participant_course_assigner();
+
+        $participantssync = new participants_sync_service(
+            $endpoint,
+            $usercreator,
+            $participantassigner
+        );
 
         $service = new lehrgaenge_sync_service(
             $endpoint,
