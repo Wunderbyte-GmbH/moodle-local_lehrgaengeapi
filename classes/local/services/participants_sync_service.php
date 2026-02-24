@@ -49,6 +49,7 @@ final class participants_sync_service {
      *
      * @param lehrgaenge_endpoint_interface $endpoint Endpoint wrapper.
      * @param users_creator $usercreator User creator.
+     * @param participant_course_assigner $assigner Participant course assigner.
      */
     public function __construct(
         lehrgaenge_endpoint_interface $endpoint,

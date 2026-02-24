@@ -48,8 +48,7 @@ final class users_creator {
 
     /**
      * Create a Moodle users in a given category.
-     *
-     * @param stdClass $participants
+     * @param array $participants
      * @return array
      */
     public function create(array $participants): array {
