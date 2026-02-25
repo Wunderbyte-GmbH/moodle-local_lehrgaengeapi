@@ -24,8 +24,6 @@
 
 namespace local_lehrgaengeapi\local\services;
 
-require_once($CFG->dirroot . '/group/lib.php');
-
 use completion_completion;
 use context_course;
 use local_lehrgaengeapi\local\repository\usermap_repository;
@@ -84,7 +82,7 @@ final class participant_course_assigner {
      * @return array
      */
     public function assign(array $participants, int $courseid): array {
-        return $this->prepare_and_loop_participants($participants,$courseid);
+        return $this->prepare_and_loop_participants($participants, $courseid);
     }
 
     /**
@@ -283,7 +281,7 @@ final class participant_course_assigner {
             return false;
         }
 
-        $groupid = $this->get_or_create_course_group( $groupname);
+        $groupid = $this->get_or_create_course_group($groupname);
         if ($groupid <= 0) {
             return false;
         }

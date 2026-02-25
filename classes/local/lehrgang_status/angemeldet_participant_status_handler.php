@@ -24,8 +24,6 @@
 
 namespace local_lehrgaengeapi\local\lehrgang_status;
 
-use context_course;
-
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/lib.php');
 

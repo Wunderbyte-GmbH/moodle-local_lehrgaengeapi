@@ -40,7 +40,7 @@ final class bestanden_participant_status_handler implements participant_status_h
      *
      * @return void
      */
-     public function process(): participant_status_action {
+    public function process(): participant_status_action {
         return participant_status_action::assign_and_complete();
     }
 }

@@ -41,27 +41,52 @@ final class participant_status_action {
     /** @var bool */
     private bool $shouldcomplete;
 
+    /**
+     * Participant_status_action constructor.
+     * @param bool $shouldassign
+     * @param bool $shouldcomplete
+     */
     public function __construct(bool $shouldassign, bool $shouldcomplete) {
         $this->shouldassign = $shouldassign;
         $this->shouldcomplete = $shouldcomplete;
     }
 
+    /**
+     * No operation constructor.
+     * @return self
+     */
     public static function noop(): self {
         return new self(false, false);
     }
 
+    /**
+     * Assign only constructor.
+     * @return self
+     */
     public static function assign_only(): self {
         return new self(true, false);
     }
 
+    /**
+     * Assign and complete constructor.
+     * @return self
+     */
     public static function assign_and_complete(): self {
         return new self(true, true);
     }
 
+    /**
+     * Assign condition.
+     * @return bool
+     */
     public function should_assign(): bool {
         return $this->shouldassign;
     }
 
+    /**
+     * Completion condition.
+     * @return bool
+     */
     public function should_complete(): bool {
         return $this->shouldcomplete;
     }

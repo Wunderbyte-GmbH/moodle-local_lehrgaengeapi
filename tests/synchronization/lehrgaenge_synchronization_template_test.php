@@ -229,7 +229,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':int'), ['int' => '%INT-%']));
 
         // Second run should skip.
-        $service = new lehrgaenge_sync_service (
+        $service = new lehrgaenge_sync_service(
             $endpoint,
             $repo,
             $coursecreator,
@@ -274,7 +274,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
      * @return lehrgaenge_endpoint_interface
      */
     private function fake_endpoint(array $items, $participantsfixture): lehrgaenge_endpoint_interface {
-        return new class( $items, $participantsfixture) implements lehrgaenge_endpoint_interface {
+        return new class ($items, $participantsfixture) implements lehrgaenge_endpoint_interface {
             /** @var array */
             private array $items;
 

@@ -44,6 +44,12 @@ final class participant_status_handler_resolver {
     /** @var participant_status_handler_interface */
     private participant_status_handler_interface $noophandler;
 
+    /**
+     * Constructor.
+     * @param participant_status_handler_interface $angemeldethandler
+     * @param participant_status_handler_interface $bestandenhandler
+     * @param participant_status_handler_interface $noophandler
+     */
     public function __construct(
         participant_status_handler_interface $angemeldethandler,
         participant_status_handler_interface $bestandenhandler,
@@ -90,10 +96,8 @@ final class participant_status_handler_resolver {
      */
     private function get_main_status_identifer(string $rawstatus): string {
         $parts = explode('_', $rawstatus);
-        array_shift($parts); // Remove leading code (e.g. S018, S084)
-        array_pop($parts); // Remove trailing context (e.g. KREIS, LAND)
+        array_shift($parts);
+        array_pop($parts);
         return implode('_', $parts);
     }
-
-
 }
