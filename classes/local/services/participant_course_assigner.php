@@ -24,6 +24,8 @@
 
 namespace local_lehrgaengeapi\local\services;
 
+require_once($CFG->dirroot . '/group/lib.php');
+
 use completion_completion;
 use context_course;
 use local_lehrgaengeapi\local\repository\usermap_repository;
@@ -46,6 +48,18 @@ final class participant_course_assigner {
     /** @var participant_status_handler_resolver */
     private participant_status_handler_resolver $resolver;
 
+    /** @var \enrol_plugin|null */
+    private \enrol_plugin|null $plugin;
+
+    /** @var \context_course|null */
+    private context_course|null $context;
+
+    /** @var int */
+    private int $courseid;
+
+    /** @var object|null */
+    private object|null $manualinstance;
+
     /**
      * Constructor.
      */
@@ -56,6 +70,10 @@ final class participant_course_assigner {
             new bestanden_participant_status_handler(),
             new noop_participant_status_handler()
         );
+        $this->courseid = 0;
+        $this->context = null;
+        $this->manualinstance = null;
+        $this->plugin = enrol_get_plugin('manual');
     }
 
     /**
@@ -66,121 +84,175 @@ final class participant_course_assigner {
      * @return array
      */
     public function assign(array $participants, int $courseid): array {
+        return $this->prepare_and_loop_participants($participants,$courseid);
+    }
+
+    /**
+     * Prepare loop for check and subscribe participant to course completion.
+     *
+     * @param array $participants
+     * @param string $courseid
+     * @return array
+     */
+    private function prepare_and_loop_participants($participants, $courseid): array {
         global $DB;
 
         $total = count($participants);
-        $skipped = 0;
-        $noop = 0;
-        $enrolled = 0;
-        $alreadyenrolled = 0;
-        $completed = 0;
 
-        $context = context_course::instance($courseid);
-
+        $report = [
+            'skipped' => 0,
+            'noop' => 0,
+            'enrolled' => 0,
+            'alreadyenrolled' => 0,
+            'completed' => 0,
+            'total' => $total,
+        ];
         // Get manual enrol plugin + instance.
-        $plugin = enrol_get_plugin('manual');
-        if (!$plugin) {
-            return [
-                'enrolled' => 0,
-                'alreadyenrolled' => 0,
-                'skipped' => $total,
-                'total' => $total,
-            ];
+        if (!$this->plugin) {
+            $report['skipped'] = $total;
+            return $report;
         }
 
-        $manualinstance = $DB->get_record(
+        $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual'], '*', IGNORE_MISSING);
+        if (!$instance) {
+            $report['skipped'] = $total;
+            return $report;
+        }
+        $this->set_courseid($courseid);
+        $this->set_manualinstance($courseid);
+        $this->set_context($courseid);
+
+        foreach ($participants as $participant) {
+            $this->subscribe_participant(
+                $participant,
+                $report
+            );
+        }
+
+        return $report;
+    }
+
+    /**
+     * Sets the course context.
+     * @param int $courseid
+     * @return void
+     */
+    private function set_context(int $courseid): void {
+        $this->context = context_course::instance($courseid);
+        return;
+    }
+
+    /**
+     * Sets the course context.
+     * @param int $courseid
+     * @return void
+     */
+    private function set_courseid(int $courseid): void {
+        $this->courseid = $courseid;
+        return;
+    }
+
+
+    /**
+     * Sets the course manual instance.
+     * @param int $courseid
+     * @return void
+     */
+    private function set_manualinstance(int $courseid): void {
+        global $DB;
+        $this->manualinstance = $DB->get_record(
             'enrol',
             ['courseid' => $courseid, 'enrol' => 'manual'],
             '*',
             IGNORE_MISSING
         );
+        return;
+    }
 
-
-        $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual'], '*', IGNORE_MISSING);
-        if (!$instance) {
-            return [
-                'enrolled' => 0,
-                'alreadyenrolled' => 0,
-                'skipped' => $total,
-                'total' => $total,
-            ];
+    /**
+     * Check and subscribe participant to course completion.
+     *
+     * @param array $participant
+     * @param array $report
+     * @return void
+     */
+    private function subscribe_participant($participant, &$report): void {
+        global $DB;
+        if (!is_array($participant)) {
+            $report['skipped']++;
+            return;
+        }
+        if (!isset($participant['initialId'])) {
+            $report['skipped']++;
+            return;
         }
 
-        foreach ($participants as $p) {
-            if (!is_array($p)) {
-                $skipped++;
-                continue;
+        $initialid = trim((string)($participant['initialId'] ?? ''));
+        if ($initialid === '') {
+            $report['skipped']++;
+            return;
+        }
+
+        $map = $this->usermap->get_by_externalinitialid($initialid);
+        if (!$map || empty($map->userid)) {
+            $report['skipped']++;
+            return;
+        }
+
+        $userid = (int)$map->userid;
+
+        $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], 'id', IGNORE_MISSING);
+        if (!$user) {
+            $report['skipped']++;
+            return;
+        }
+
+        $status = (string)($participant['status'] ?? '');
+        $handler = $this->resolver->resolve($status);
+        $action = $handler->process();
+
+        if (!$action->should_assign() && !$action->should_complete()) {
+            $report['noop']++;
+            return;
+        }
+
+        if ($action->should_assign()) {
+            $isenrolled = is_enrolled($this->context, $userid, '', true);
+
+            if ($isenrolled) {
+                $report['alreadyenrolled']++;
+            } else if ($this->plugin && $this->manualinstance) {
+                $this->plugin->enrol_user($this->manualinstance, $userid, (int)$this->manualinstance->roleid);
+                $report['enrolled']++;
+                $isenrolled = true;
             }
 
-            $initialid = trim((string)($p['initialId'] ?? ''));
-            if ($initialid === '') {
-                $skipped++;
-                continue;
-            }
-
-            $map = $this->usermap->get_by_externalinitialid($initialid);
-            if (!$map || empty($map->userid)) {
-                $skipped++;
-                continue;
-            }
-
-            $userid = (int)$map->userid;
-
-            $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], 'id', IGNORE_MISSING);
-            if (!$user) {
-                $skipped++;
-                continue;
-            }
-
-            $status = (string)($p['status'] ?? '');
-            $handler = $this->resolver->resolve($status);
-            $action = $handler->process();
-
-            if (!$action->should_assign() && !$action->should_complete()) {
-                $noop++;
-                continue;
-            }
-
-            if ($action->should_assign()) {
-                if (is_enrolled($context, $userid, '', true)) {
-                    $alreadyenrolled++;
-                } else if ($plugin && $manualinstance) {
-                    $plugin->enrol_user($manualinstance, $userid, (int)$manualinstance->roleid);
-                    $enrolled++;
-                }
-            }
-
-            if ($action->should_complete()) {
-                if ($this->mark_course_completed($userid, $courseid)) {
-                    $completed++;
-                }
+            // If user is enrolled (already or newly), ensure group membership.
+            if ($isenrolled) {
+                $this->ensure_participant_group_membership($participant, $userid);
             }
         }
 
-        return [
-            'enrolled' => $enrolled,
-            'alreadyenrolled' => $alreadyenrolled,
-            'completed' => $completed,
-            'noop' => $noop,
-            'skipped' => $skipped,
-            'total' => $total,
-        ];
+        if ($action->should_complete()) {
+            if ($this->mark_course_completed($userid)) {
+                $report['completed']++;
+            }
+        }
     }
 
     /**
      * Mark course completion for a user (if possible).
      *
      * @param int $userid
-     * @param int $courseid
      * @return bool True if completion was marked or already complete.
      */
-    private function mark_course_completed(int $userid, int $courseid): bool {
+    private function mark_course_completed(int $userid): bool {
         global $DB;
 
         // Course completion record helper class.
         $completion = new completion_completion([
             'userid' => $userid,
-            'course' => $courseid,
+            'course' => $this->courseid,
         ]);
 
         // If already completed, nothing to do.
@@ -191,9 +263,86 @@ final class participant_course_assigner {
         $completion->mark_complete(time());
         $record = $DB->get_record('course_completions', [
             'userid' => $userid,
-            'course' => $courseid,
+            'course' => $this->courseid,
         ], 'timecompleted', IGNORE_MISSING);
 
         return !empty($record->timecompleted);
+    }
+
+    /**
+     * Ensure participant is in the target course group (create group if needed).
+     *
+     * @param array $participant
+     * @param int $userid
+     * @return bool True if group membership exists/was added, false otherwise.
+     */
+    private function ensure_participant_group_membership(array $participant, int $userid): bool {
+        $groupname = $this->resolve_group_name_from_participant($participant);
+
+        if ($groupname === '') {
+            return false;
+        }
+
+        $groupid = $this->get_or_create_course_group( $groupname);
+        if ($groupid <= 0) {
+            return false;
+        }
+        return groups_add_member($groupid, $userid);
+    }
+
+    /**
+     * Resolve course group name from participant payload.
+     *
+     * @param array $participant
+     * @return string
+     */
+    private function resolve_group_name_from_participant(array $participant): string {
+        $orgname = trim((string)($participant['organisation']['name'] ?? ''));
+        $orgid = trim((string)($participant['organisation']['id'] ?? ''));
+
+        if ($orgname !== '') {
+            return $orgname;
+        }
+
+        // Fallback if name is not present.
+        if ($orgid !== '') {
+            return 'Organisation ' . $orgid;
+        }
+
+        return '';
+    }
+
+    /**
+     * Get existing group in course by name or create it.
+     *
+     * @param string $groupname
+     * @return int Group ID or 0 on failure.
+     */
+    private function get_or_create_course_group(string $groupname): int {
+        global $DB;
+
+        $groupname = trim($groupname);
+        if ($groupname === '') {
+            return 0;
+        }
+
+        $existing = $DB->get_record('groups', [
+            'courseid' => $this->courseid,
+            'name' => $groupname,
+        ], 'id', IGNORE_MISSING);
+
+        if ($existing && !empty($existing->id)) {
+            return (int)$existing->id;
+        }
+
+        $groupdata = new \stdClass();
+        $groupdata->courseid = $this->courseid;
+        $groupdata->name = $groupname;
+        $groupdata->description = '';
+        $groupdata->descriptionformat = FORMAT_HTML;
+
+        $newgroupid = groups_create_group($groupdata);
+
+        return $newgroupid ? (int)$newgroupid : 0;
     }
 }

@@ -1,39 +1,95 @@
-# Lehrgaenge API
-
 ```mermaid
-flowchart TD
-  Cron["Moodle Cron / Scheduled Task Runner"] --> Task["sync_lehrgaenge_task (scheduled_task)"]
-  Task --> Lock["\\core\\lock (prevents overlap)"]
-  Task --> Factory["factory: build services from config"]
+flowchart LR
+  %% Scheduler
+  subgraph Scheduler [Scheduler]
+    Cron["Moodle Cron / Scheduled Task Runner"]
+    Task["sync_lehrgaenge_task"]
+  end
+  Cron --> Task
+  Task --> Lock["core\\lock<br/>(prevents concurrent runs)"]
+  Task --> Factory["Factory"]
 
-  Factory --> Config["get_config('local_lehrgaengeapi')"]
-  Factory --> Auth["token_authenticator (X-MoodleAuthToken)"]
-  Factory --> Client["api_client (HTTP via Moodle \\curl)"]
-  Factory --> Endpoint["lehrgaenge_endpoint (Facade)"]
-  Factory --> Service["lehrgaenge_sync_service"]
+  %% Local services grouped vertically for clarity
+  subgraph Services [Local Services]
+    direction TB
+    Factory --> SyncService["lehrgaenge_sync_service<br/>(orchestrator)"]
+    SyncService --> CourseFlow["Course Sync"]
+    SyncService --> ParticipantsSyncSvc["Participants Sync"]
+  end
 
-  %% External call chain
-  Service --> Endpoint
-  Endpoint --> Client
-  Client --> Curl["\\curl (lib/filelib.php)"]
-  Curl --> External(["External ZMS API"])
+  %% External API cluster (keeps external calls on the right)
+  # Lehrgaenge API
 
-  %% DB mapping/persistence
-  Service --> RepoCourse["coursemap_repository"]
-  Service --> RepoUser["usermap_repository"]
-  RepoCourse --> DB[("Moodle DB (mapping tables)")]
-  RepoUser --> DB
+  ```mermaid
+  flowchart LR
+    %% Scheduler
+    subgraph Scheduler [Scheduler]
+      Cron["Moodle Cron / Scheduled Task Runner"]
+      Task["sync_lehrgaenge_task"]
+    end
+    Cron --> Task
+    Task --> Lock["core\\lock<br/>(prevents concurrent runs)"]
+    Task --> Factory["Factory"]
 
-  %% Moodle updates
-  Service --> Category["Default Course Category<br/>(moodlecourse.defaultcategory)"]
-  Service --> MoodleCourses(["Moodle Course API (create/update)"])
-  Service --> MoodleUsers(["Moodle User API (create/update)"])
-  Category --> MoodleCourses
+    %% Local services grouped vertically for clarity
+    subgraph Services [Local Services]
+      direction TB
+      Factory --> SyncService["lehrgaenge_sync_service<br/>(orchestrator)"]
+      SyncService --> CourseFlow["Course Sync"]
+      SyncService --> ParticipantsSyncSvc["Participants Sync"]
+    end
 
-  %% Responses & errors
-  Client -->|2xx| Response["api_response (status/body/headers)"]
-  Client -->|non-2xx| Ex["api_exception (+ typed subclasses)"]
-  Ex --> Task
-  Response --> Endpoint
-  Endpoint --> Service
-  Service --> Task
+    %% External API cluster (keeps external calls on the right)
+    subgraph API [External API]
+      direction TB
+      Auth["token_authenticator"]
+      Client["api_client<br/>(HTTP Client)"]
+      Curl["curl<br/>(lib/filelib.php)"]
+      External["External ZMS API"]
+      Auth --> Client
+      Client --> Curl --> External
+    end
+
+    %% Moodle platform cluster (bottom-right)
+    subgraph Moodle [Moodle Platform]
+      direction TB
+      MoodleDB["Moodle DB<br/>(mapping tables)"]
+      MoodleCourseAPI["Moodle Course API<br/>(create/update)"]
+      MoodleUserAPI["Moodle User API<br/>(create/update)"]
+    end
+
+    %% Connections between services and API / Moodle
+    SyncService --> Endpoint["lehrgaenge_endpoint<br/>(API Facade)"]
+    Endpoint --> Client
+
+    CourseFlow --> CourseCreator["course_creator"]
+    CourseFlow --> RepoCourse["coursemap_repository"]
+    RepoCourse --> MoodleDB
+    CourseCreator --> MoodleCourseAPI
+
+    ParticipantsSyncSvc --> UsersCreator["users_creator"]
+    ParticipantsSyncSvc --> ParticipantAssigner["participant_course_assigner"]
+    ParticipantsSyncSvc --> RepoUser["usermap_repository"]
+    RepoUser --> MoodleDB
+    UsersCreator --> MoodleUserAPI
+    ParticipantAssigner --> MoodleCourseAPI
+
+    %% Participant status handlers grouped to the right of participants flow
+    subgraph Status [Participant Status Handling]
+      direction LR
+      Resolver["participant_status_handler_resolver"]
+      Handlers["Handlers:<br/>angemeldet, bestanden, noop"]
+      Action["participant_status_action"]
+      Resolver --> Handlers --> Action --> MoodleUserAPI
+    end
+    ParticipantsSyncSvc --> Resolver
+
+    %% Response & error handling (kept close to API cluster)
+    Client -->|2xx| Response["api_response<br/>(body/status/headers)"]
+    Client -->|Error| ApiEx["api_exception<br/>(401/403/404/429/500)"]
+    Response --> Endpoint
+    ApiEx --> Task
+
+    %% Cosmetic: keep main orchestration visible
+    Task --> SyncService
+  ```

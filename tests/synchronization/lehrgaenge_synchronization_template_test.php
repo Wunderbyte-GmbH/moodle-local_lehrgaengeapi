@@ -164,6 +164,44 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
                     'No completion record for user P-00004561 is also valid in course ' . $course->idnumber
                 );
             }
+
+            // Group assertions: users should be in organisation group.
+            $groupname = 'FF Bröckehausen';
+
+            $group = $DB->get_record(
+                'groups',
+                [
+                    'courseid' => (int)$course->id,
+                    'name' => $groupname,
+                ],
+                '*',
+                MUST_EXIST
+            );
+
+            $this->assertNotFalse(
+                $group,
+                'Expected group "' . $groupname . '" in course ' . $course->idnumber
+            );
+
+            $this->assertTrue(
+                groups_is_member((int)$group->id, (int)$user1->id),
+                'User P-00004561 should be in group "' . $groupname . '" for course ' . $course->idnumber
+            );
+
+            $this->assertTrue(
+                groups_is_member((int)$group->id, (int)$user2->id),
+                'User P-00001002 should be in group "' . $groupname . '" for course ' . $course->idnumber
+            );
+
+            // Optional: ensure group was not duplicated within the course.
+            $this->assertSame(
+                1,
+                $DB->count_records('groups', [
+                    'courseid' => (int)$course->id,
+                    'name' => $groupname,
+                ]),
+                'Group "' . $groupname . '" should exist only once in course ' . $course->idnumber
+            );
         }
 
         foreach ($items as $item) {
