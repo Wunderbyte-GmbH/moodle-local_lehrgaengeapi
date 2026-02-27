@@ -275,6 +275,8 @@ final class participant_course_assigner {
      * @return bool True if group membership exists/was added, false otherwise.
      */
     private function ensure_participant_group_membership(array $participant, int $userid): bool {
+        global $CFG;
+        require_once($CFG->dirroot . '/group/lib.php');
         $groupname = $this->resolve_group_name_from_participant($participant);
 
         if ($groupname === '') {
@@ -285,7 +287,7 @@ final class participant_course_assigner {
         if ($groupid <= 0) {
             return false;
         }
-        return groups_add_member($groupid, $userid);
+        return \groups_add_member($groupid, $userid);
     }
 
     /**
@@ -317,7 +319,8 @@ final class participant_course_assigner {
      * @return int Group ID or 0 on failure.
      */
     private function get_or_create_course_group(string $groupname): int {
-        global $DB;
+        global $DB, $CFG;
++        require_once($CFG->dirroot . '/group/lib.php');
 
         $groupname = trim($groupname);
         if ($groupname === '') {
@@ -339,7 +342,7 @@ final class participant_course_assigner {
         $groupdata->description = '';
         $groupdata->descriptionformat = FORMAT_HTML;
 
-        $newgroupid = groups_create_group($groupdata);
+        $newgroupid = \groups_create_group($groupdata);
 
         return $newgroupid ? (int)$newgroupid : 0;
     }
