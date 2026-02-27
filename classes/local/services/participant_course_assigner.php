@@ -320,7 +320,7 @@ final class participant_course_assigner {
      */
     private function get_or_create_course_group(string $groupname): int {
         global $DB, $CFG;
-+        require_once($CFG->dirroot . '/group/lib.php');
+        require_once($CFG->dirroot . '/group/lib.php');
 
         $groupname = trim($groupname);
         if ($groupname === '') {
