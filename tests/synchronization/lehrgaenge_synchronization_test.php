@@ -91,7 +91,7 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
-            'category' => $category->id
+            'category' => $category->id,
         ];
         $DB->insert_record('company', $company);
 

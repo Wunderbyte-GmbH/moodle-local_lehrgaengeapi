@@ -24,7 +24,6 @@
 
 namespace local_lehrgaengeapi\local\services;
 
-use core_course_category;
 use stdClass;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;

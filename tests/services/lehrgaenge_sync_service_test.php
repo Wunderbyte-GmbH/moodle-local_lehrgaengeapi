@@ -96,7 +96,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
-            'category' => $category->id
+            'category' => $category->id,
         ];
         $DB->insert_record('company', $company);
 
@@ -178,7 +178,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
-            'category' => $category->id
+            'category' => $category->id,
         ];
         $DB->insert_record('company', $company);
 
@@ -254,7 +254,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             'abbr' => 'HP',
         ];
 
-        $summary = $service->sync($tenant );
+        $summary = $service->sync($tenant);
 
         $after = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 

@@ -75,12 +75,6 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             'enablecompletion' => 1,
         ]);
 
-
-        $tenant = [
-            'name' => "Landkreis Bergstraße",
-            'abbr' => 'HP',
-        ];
-
         set_config('targetcourseid', (int)$template->id, 'local_lehrgaengeapi');
 
         $items = $this->load_json_fixture('200_lehrgaenge.json');
@@ -122,7 +116,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
-            'category' => $category->id
+            'category' => $category->id,
         ];
         $DB->insert_record('company', $company);
         $summary = $service->sync($tenant);
