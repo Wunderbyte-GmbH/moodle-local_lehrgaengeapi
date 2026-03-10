@@ -30,3 +30,6 @@ $plugin->supported = [405, 500];
 $plugin->version = 2026021701;
 $plugin->requires = 2022112800;
 $plugin->maturity = MATURITY_STABLE;
+$plugin->dependencies = [
+    'local_iomad' => 2024010100,
+];
