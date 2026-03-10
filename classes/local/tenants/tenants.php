@@ -22,11 +22,10 @@ use core_text;
  * Class tenants
  *
  * @package    local_lehrgaengeapi
- * @copyright  2026 YOUR NAME <your@email.com>
+ * @copyright  2026 Jacob Viertel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tenants {
-
     /**
      * Returns a list of all tenants.
      * @return array An array of tenants, each tenant is an associative array with 'name' and 'abbr' keys.

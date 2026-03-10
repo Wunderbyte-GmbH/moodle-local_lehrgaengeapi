@@ -46,11 +46,7 @@ final class factory {
     /**
      * Build Lehrgaenge endpoint from plugin config.
      *
-     * Requires plugin settings:
-     * - baseurl
-     * - token
-     * - timeoutseconds (optional)
-     *
+     * @param string $token
      * @return lehrgaenge_endpoint
      */
     public static function lehrgaenge_endpoint($token): lehrgaenge_endpoint {
@@ -68,6 +64,7 @@ final class factory {
     /**
      * Get all new courses.
      *
+     * @param string $token
      * @return lehrgaenge_sync_service
      */
     public static function lehrgaenge_sync_service($token): lehrgaenge_sync_service {

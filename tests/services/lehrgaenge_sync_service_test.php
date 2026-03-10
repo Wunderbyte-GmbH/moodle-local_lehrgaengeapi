@@ -31,6 +31,7 @@ use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
 use local_lehrgaengeapi\local\services\participant_course_assigner;
 use local_lehrgaengeapi\local\services\participants_sync_service;
+use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\users\users_creator;
 
 /**
@@ -49,18 +50,21 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
     public function test_creates_course_and_mapping(): void {
         global $DB;
         $this->resetAfterTest(true);
+        set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
 
         $endpoint = $this->fake_endpoint([
             [
                 'id' => 'LG-100',
                 'bezeichnung' => 'Atemschutzgeräteträgerlehrgang',
                 'kurzbezeichnung' => 'AGT',
+                'endTag' => '2026-01-01',
             ],
         ]);
 
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
+        $tenantcreator = new tenant_creator();
         $participantassigner = new participant_course_assigner();
 
         $participantssync = new participants_sync_service(
@@ -73,18 +77,38 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
 
-        $summary = $service->sync();
+        $tenant = [
+            'name' => "Landkreis Bergstraße",
+            'abbr' => 'FD',
+        ];
+
+        $category = $this->getDataGenerator()->create_category([
+            'name' => 'Test company category',
+            'idnumber' => 'hp-company-category',
+        ]);
+        $company = [
+            'name' => "Landkreis Bergstraße",
+            'shortname' => 'FD',
+            'city' => 'Fulda',
+            'postcode' => 1234,
+            'country' => 'DE',
+            'category' => $category->id
+        ];
+        $DB->insert_record('company', $company);
+
+        $summary = $service->sync($tenant);
 
         $this->assertSame(1, $summary['created']);
         $this->assertSame(0, $summary['skipped']);
         $this->assertSame(1, $summary['total']);
 
         $course = $DB->get_record('course', ['idnumber' => 'LG-100'], '*', MUST_EXIST);
-        $this->assertSame('LG-100', $course->fullname);
-        $this->assertSame('LG-100', $course->shortname);
+        $this->assertSame('FD-AGT-2026', $course->fullname);
+        $this->assertSame('FD-AGT-2026', $course->shortname);
 
         $map = $repo->get_by_externalid('LG-100');
         $this->assertNotNull($map);
@@ -99,11 +123,13 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
     public function test_existing_course_is_not_modified(): void {
         global $DB;
         $this->resetAfterTest(true);
+        set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
 
         $course = $this->getDataGenerator()->create_course([
             'fullname' => 'Keep Me',
             'shortname' => 'KEEP',
             'idnumber' => 'LG-200',
+            'endTag' => '2026-01-01',
             'visible' => 1,
         ]);
 
@@ -117,6 +143,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
 
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
+        $tenantcreator = new tenant_creator();
         $usercreator = new users_creator();
         $participantassigner = new participant_course_assigner();
 
@@ -130,12 +157,32 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
 
         $before = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 
-        $summary = $service->sync();
+        $tenant = [
+            'name' => "Landkreis Bergstraße",
+            'abbr' => 'FD',
+        ];
+
+        $category = $this->getDataGenerator()->create_category([
+            'name' => 'Test company category',
+            'idnumber' => 'hp-company-category',
+        ]);
+        $company = [
+            'name' => "Landkreis Bergstraße",
+            'shortname' => 'FD',
+            'city' => 'Fulda',
+            'postcode' => 1234,
+            'country' => 'DE',
+            'category' => $category->id
+        ];
+        $DB->insert_record('company', $company);
+
+        $summary = $service->sync($tenant);
 
         $after = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 
@@ -162,6 +209,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
     public function test_existing_mapping_is_respected(): void {
         global $DB;
         $this->resetAfterTest(true);
+        set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
 
         $course = $this->getDataGenerator()->create_course([
             'fullname' => 'Mapped Course',
@@ -181,6 +229,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $repo = new coursemap_repository();
         $repo->set_courseid('LG-300', (int)$course->id);
         $coursecreator = new course_creator();
+        $tenantcreator = new tenant_creator();
         $usercreator = new users_creator();
         $participantassigner = new participant_course_assigner();
 
@@ -194,12 +243,18 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator,
         );
 
         $before = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 
-        $summary = $service->sync();
+        $tenant = [
+            'name' => "Landkreis Bergstraße",
+            'abbr' => 'HP',
+        ];
+
+        $summary = $service->sync($tenant );
 
         $after = $DB->get_record('course', ['id' => (int)$course->id], '*', MUST_EXIST);
 

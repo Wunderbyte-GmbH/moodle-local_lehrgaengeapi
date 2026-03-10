@@ -49,9 +49,9 @@
     "startZeit": "08:30",
     "endZeit": "16:30",
     "ort": "FTZ Bröckehausen",
-    "startTag": "2025-03-10",
-    "endTag": "2025-03-14",
-    "anmeldeschluss": "2025-02-24",
+    "startTag": "2026-03-10",
+    "endTag": "2026-03-14",
+    "anmeldeschluss": "2026-02-24",
     "maxAnzahlTeilnehmer": 12,
     "isLehrgangLocked": true,
     "lehrgangstage": [

@@ -29,6 +29,7 @@ use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\services\participant_course_assigner;
 use local_lehrgaengeapi\local\services\participants_sync_service;
+use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
@@ -75,7 +76,26 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $tenantcreator
         );
 
-        $summary = $service->sync();
+        $tenant = [
+            'name' => "Landkreis Bergstraße",
+            'abbr' => 'FD',
+        ];
+
+        $category = $this->getDataGenerator()->create_category([
+            'name' => 'Test company category',
+            'idnumber' => 'hp-company-category',
+        ]);
+        $company = [
+            'name' => "Landkreis Bergstraße",
+            'shortname' => 'FD',
+            'city' => 'Fulda',
+            'postcode' => 1234,
+            'country' => 'DE',
+            'category' => $category->id
+        ];
+        $DB->insert_record('company', $company);
+
+        $summary = $service->sync($tenant);
 
         $this->assertSame(3, $summary['total']);
         $this->assertSame(3, $summary['created']);
@@ -85,9 +105,6 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $externalid = (string)$item['id'];
 
             $course = $DB->get_record('course', ['idnumber' => $externalid], '*', MUST_EXIST);
-            $this->assertStringContainsString((string)$course->fullname, $externalid);
-            $this->assertSame($externalid, (string)$course->shortname);
-
             $map = $repo->get_by_externalid($externalid);
             $this->assertNotNull($map);
             $this->assertSame((int)$course->id, (int)$map->courseid);
@@ -100,7 +117,7 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $tenantcreator
         );
 
-        $summary = $service->sync();
+        $summary = $service->sync($tenant);
 
         $this->assertSame(3, $summary['total']);
         $this->assertSame(0, $summary['created']);

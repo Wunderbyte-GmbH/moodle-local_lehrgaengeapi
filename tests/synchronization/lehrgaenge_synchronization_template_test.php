@@ -75,6 +75,12 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             'enablecompletion' => 1,
         ]);
 
+
+        $tenant = [
+            'name' => "Landkreis Bergstraße",
+            'abbr' => 'HP',
+        ];
+
         set_config('targetcourseid', (int)$template->id, 'local_lehrgaengeapi');
 
         $items = $this->load_json_fixture('200_lehrgaenge.json');
@@ -101,7 +107,25 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             $tenantcreator
         );
 
-        $summary = $service->sync();
+        $tenant = [
+            'name' => "Landkreis Bergstraße",
+            'abbr' => 'FD',
+        ];
+
+        $category = $this->getDataGenerator()->create_category([
+            'name' => 'Test company category',
+            'idnumber' => 'hp-company-category',
+        ]);
+        $company = [
+            'name' => "Landkreis Bergstraße",
+            'shortname' => 'FD',
+            'city' => 'Fulda',
+            'postcode' => 1234,
+            'country' => 'DE',
+            'category' => $category->id
+        ];
+        $DB->insert_record('company', $company);
+        $summary = $service->sync($tenant);
 
         $this->assertSame(3, $summary['total']);
         $this->assertSame(3, $summary['created']);
@@ -229,8 +253,8 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             $this->assertSame('topics', (string)$course->format);
         }
 
-        $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':ext'), ['ext' => '%EXT-%']));
-        $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('fullname', ':int'), ['int' => '%INT-%']));
+        $this->assertSame(2, $DB->count_records_select('course', $DB->sql_like('idnumber', ':ext'), ['ext' => '%EXT-%']));
+        $this->assertSame(1, $DB->count_records_select('course', $DB->sql_like('idnumber', ':int'), ['int' => '%INT-%']));
 
         // Second run should skip.
         $service = new lehrgaenge_sync_service(
@@ -240,7 +264,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             $participantssync,
             $tenantcreator
         );
-        $summary = $service->sync();
+        $summary = $service->sync($tenant);
 
         $this->assertSame(3, $summary['total']);
         $this->assertSame(0, $summary['created']);

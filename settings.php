@@ -1,6 +1,4 @@
 <?php
-
-use local_lehrgaengeapi\local\tenants\tenants;
 // This file is part of Moodle - https://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -24,6 +22,8 @@ use local_lehrgaengeapi\local\tenants\tenants;
  * @copyright   2025 Wunderbyte Gmbh <info@wunderbyte.at>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+use local_lehrgaengeapi\local\tenants\tenants;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -122,6 +122,5 @@ if ($hassiteconfig) {
                 ''
             ));
         }
-
     }
 }
