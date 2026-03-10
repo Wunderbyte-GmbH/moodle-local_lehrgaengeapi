@@ -1,4 +1,6 @@
 <?php
+
+use local_lehrgaengeapi\local\tenants\tenants;
 // This file is part of Moodle - https://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -95,5 +97,31 @@ if ($hassiteconfig) {
             0,
             $courseoptions
         ));
+
+        $settings->add(new admin_setting_heading(
+            $componentname . '/mandanten_heading',
+            get_string('tenantheading', $componentname),
+            get_string('tenantdescription', $componentname)
+        ));
+        $tenants = tenants::all();
+
+        foreach ($tenants as $mandant) {
+            $abbrclean = core_text::strtolower($mandant['abbr']);
+            $abbrclean = preg_replace('/[^a-z0-9_]/', '_', $abbrclean);
+
+            $settings->add(new admin_setting_description(
+                $componentname . '/mandant_' . $abbrclean . '_label',
+                format_string($mandant['name']) . ' (' . s($mandant['abbr']) . ')',
+                ''
+            ));
+
+            $settings->add(new admin_setting_configpasswordunmask(
+                $componentname . '/apikey_' . $abbrclean,
+                get_string('apikey', $componentname),
+                get_string('apikeydesc', $componentname),
+                ''
+            ));
+        }
+
     }
 }

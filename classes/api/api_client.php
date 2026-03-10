@@ -103,9 +103,25 @@ final class api_client {
     public function get(string $path, array $query = []): api_response {
         $url = $this->build_url($path, $query);
 
+        $cfg = get_config('local_lehrgaengeapi');
+        $clientcert = $cfg->clientcert ?? '';
+        $clientkey  = $cfg->clientkey ?? '';
+        $cainfo     = $cfg->cainfo ?? '';
+
         $options = [
             'CURLOPT_TIMEOUT' => $this->timeoutseconds,
         ];
+
+        if (!empty($clientcert) && !empty($clientkey)) {
+            $options['CURLOPT_SSLCERT'] = $clientcert;
+            $options['CURLOPT_SSLKEY']  = $clientkey;
+        }
+
+        if (!empty($cainfo)) {
+            $options['CURLOPT_CAINFO'] = $cainfo;
+        }
+
+        $this->curl->setHeader('Accept: application/json');
 
         foreach ($this->authenticator->get_headers() as $name => $value) {
             $this->curl->setHeader($name . ': ' . $value);

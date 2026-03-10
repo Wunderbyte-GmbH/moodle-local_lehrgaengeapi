@@ -49,6 +49,7 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
     public function test_sync_creates_courses_from_dummydata_fixture(): void {
         global $DB;
         $this->resetAfterTest(true);
+        set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
 
         $items = $this->load_json_fixture('200_lehrgaenge.json');
         $this->assertCount(3, $items);
@@ -57,6 +58,7 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
+        $tenantcreator = new tenant_creator();
         $participantassigner = new participant_course_assigner();
 
         $participantssync = new participants_sync_service(
@@ -69,7 +71,8 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
 
         $summary = $service->sync();
@@ -93,7 +96,8 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
 
         $summary = $service->sync();

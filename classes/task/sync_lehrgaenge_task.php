@@ -26,6 +26,7 @@
 namespace local_lehrgaengeapi\task;
 
 use local_lehrgaengeapi\factory;
+use local_lehrgaengeapi\local\tenants\tenants;
 use local_lehrgaengeapi\api\exceptions\api_rate_limited_exception;
 use local_lehrgaengeapi\api\exceptions\api_unauthorized_exception;
 
@@ -62,8 +63,12 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
         }
 
         try {
-            $service = factory::lehrgaenge_sync_service();
-            $summary = $service->sync();
+            // Foreach here.
+            $allapiendpoints = tenants::get_all_with_keys();
+            foreach ($allapiendpoints as $apiendpoint) {
+                $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
+                $summary = $service->sync($apiendpoint);
+            }
             mtrace('local_lehrgaengeapi: lehrgaenge sync summary: ' . json_encode($summary));
         } catch (api_rate_limited_exception $e) {
             $retry = method_exists($e, 'get_retry_after_seconds') ? $e->get_retry_after_seconds() : null;

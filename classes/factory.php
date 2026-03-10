@@ -32,6 +32,7 @@ use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\services\lehrgaenge_sync_service;
 use local_lehrgaengeapi\local\services\participant_course_assigner;
 use local_lehrgaengeapi\local\services\participants_sync_service;
+use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\users\users_creator;
 
 /**
@@ -52,11 +53,10 @@ final class factory {
      *
      * @return lehrgaenge_endpoint
      */
-    public static function lehrgaenge_endpoint(): lehrgaenge_endpoint {
+    public static function lehrgaenge_endpoint($token): lehrgaenge_endpoint {
         $config = get_config('local_lehrgaengeapi');
 
         $baseurl = isset($config->baseurl) ? (string)$config->baseurl : '';
-        $token = isset($config->token) ? (string)$config->token : '';
         $timeout = isset($config->timeoutseconds) ? (int)$config->timeoutseconds : 30;
 
         $auth = new token_authenticator($token);
@@ -70,12 +70,13 @@ final class factory {
      *
      * @return lehrgaenge_sync_service
      */
-    public static function lehrgaenge_sync_service(): lehrgaenge_sync_service {
-        $endpoint = self::lehrgaenge_endpoint();
+    public static function lehrgaenge_sync_service($token): lehrgaenge_sync_service {
+        $endpoint = self::lehrgaenge_endpoint($token);
         $coursemap = new coursemap_repository();
         $coursecreator = new course_creator();
         $usercreator = new users_creator();
         $participantassigner = new participant_course_assigner();
+        $tenantcreator = new tenant_creator();
 
         $participantssync = new participants_sync_service(
             $endpoint,
@@ -87,7 +88,8 @@ final class factory {
             $endpoint,
             $coursemap,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
     }
 }

@@ -24,6 +24,8 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+$string['apikey'] = 'API key';
+$string['apikeydesc'] = 'Enter the API key for this mandant.';
 $string['apirequestfailed'] = 'External API request failed.';
 $string['baseurl'] = 'Base URL';
 $string['baseurldesc'] = 'Base URL of the external API, e.g. https://api.example.com';
@@ -36,6 +38,8 @@ $string['settingsheading'] = 'External API settings';
 $string['targetcourseid'] = 'Target course ID for syncing Lehrgaenge';
 $string['targetcourseiddesc'] = 'Target course ID for syncing Lehrgaenge, which is used as master course.';
 $string['tasksynclehrgaenge'] = 'Sync Lehrgaenge (external API)';
+$string['tenantheading'] = 'Tenant Settings';
+$string['tenantdescription'] = 'For each tenant you can specify a custom API token.';
 $string['timeout'] = 'Request timeout (seconds)';
 $string['timeoutdesc'] = 'HTTP request timeout in seconds for external API calls.';
 $string['token'] = 'API token';

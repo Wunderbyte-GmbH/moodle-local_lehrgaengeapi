@@ -28,6 +28,7 @@ namespace local_lehrgaengeapi\synchronization;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\services\participant_course_assigner;
 use local_lehrgaengeapi\local\services\participants_sync_service;
+use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\users\users_creator;
 use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
@@ -50,6 +51,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         global $DB;
         $this->resetAfterTest(true);
         set_config('enablecompletion', 1);
+        set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
 
         // Create a template course and set it as global master.
         $category = $this->getDataGenerator()->create_category();
@@ -82,6 +84,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $endpoint = $this->fake_endpoint($items, $participantsfixture);
         $repo = new coursemap_repository();
         $coursecreator = new course_creator();
+        $tenantcreator = new tenant_creator();
         $usercreator = new users_creator();
         $participantassigner = new participant_course_assigner();
         $participantssync = new participants_sync_service(
@@ -94,7 +97,8 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
 
         $summary = $service->sync();
@@ -233,7 +237,8 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
             $endpoint,
             $repo,
             $coursecreator,
-            $participantssync
+            $participantssync,
+            $tenantcreator
         );
         $summary = $service->sync();
 

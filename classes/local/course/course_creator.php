@@ -24,6 +24,8 @@
 
 namespace local_lehrgaengeapi\local\course;
 
+use company;
+
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/lib.php');
 
@@ -38,14 +40,12 @@ final class course_creator {
     /**
      * Create a Moodle course in a given category.
      *
-     * @param int $categoryid
-     * @param string $fullname
-     * @param string $shortname
-     * @param string $idnumber
+     * @param company $tenant
+     * @param array $item
      * @return \stdClass
      */
-    public function create(int $categoryid, string $fullname, string $shortname, string $idnumber): \stdClass {
-        $identifications = $this->get_course_identifications($idnumber);
+    public function create(company $tenant, array $item): \stdClass {
+        $identifications = $this->set_course_identifications($item, $tenant);
         $templatecourse = null;
         // Find master course of courseshortname.
         $templatecourse = $this->get_local_template_course($identifications['coursename']);
@@ -53,8 +53,6 @@ final class course_creator {
         if (empty($templatecourse)) {
             $templatecourse = $this->get_global_template_course();
         }
-
-        $targetcategoryid = $templatecourse ? (int)$templatecourse->category : $categoryid;
 
         // Start with template-derived defaults (if available).
         $data = $this->build_course_data_from_template($templatecourse);
@@ -65,10 +63,11 @@ final class course_creator {
             $data->enddate   = make_timestamp($year, 12, 31, 23, 59, 59);
         }
 
-        $data->category  = $targetcategoryid;
+        $fullname = implode('-', $identifications);
+        $data->category  = $tenant->get('category');
         $data->fullname  = $fullname;
-        $data->shortname = $idnumber;
-        $data->idnumber  = $idnumber;
+        $data->shortname = $fullname;
+        $data->idnumber  = $item['id'];
         $data->visible   = 1;
 
         return create_course($data);
@@ -77,19 +76,15 @@ final class course_creator {
     /**
      * Create a Moodle course in a given category.
      *
-     * @param string $identifications
+     * @param array $item
+     * @param company $tenant
      * @return array
      */
-    private function get_course_identifications(string $identifications): array {
-        $identifications = explode('-', $identifications);
-        $tenant = array_shift($identifications);
-        $year = array_pop($identifications);
-        $coursename = implode('-', $identifications);
-
+    private function set_course_identifications(array $item, company $tenant): array {
         return [
-            'tenant' => $tenant,
-            'year' => $year,
-            'coursename' => $coursename,
+            'tenant' => $tenant->get('shortname'),
+            'coursename' => $item['kurzbezeichnung'],
+            'year' => substr($item['endTag'], 0, 4),
         ];
     }
 

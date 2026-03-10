@@ -29,6 +29,7 @@ use stdClass;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\course\course_creator;
+use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\services\participants_sync_service;
 
 /**
@@ -51,6 +52,9 @@ final class lehrgaenge_sync_service {
     /** @var participants_sync_service */
     private participants_sync_service $participantssync;
 
+    /** @var tenant_creator */
+    private tenant_creator $tenantcreator;
+
     /**
      * Constructor.
      *
@@ -58,26 +62,29 @@ final class lehrgaenge_sync_service {
      * @param coursemap_repository $coursemap Course mapping repo.
      * @param course_creator $coursecreator Course creator.
      * @param participants_sync_service $participantssync User creator.
+     * @param tenant_creator $tenantcreator Tenant creator.
      */
     public function __construct(
         lehrgaenge_endpoint_interface $endpoint,
         coursemap_repository $coursemap,
         course_creator $coursecreator,
-        participants_sync_service $participantssync
+        participants_sync_service $participantssync,
+        tenant_creator $tenantcreator
     ) {
         $this->endpoint = $endpoint;
         $this->coursemap = $coursemap;
         $this->coursecreator = $coursecreator;
         $this->participantssync = $participantssync;
+        $this->tenantcreator = $tenantcreator;
     }
 
     /**
      * Sync all Lehrgaenge.
-     *
+     * @param array $tenant
      * @return array{created:int,skipped:int,total:int}
      * @throws \Throwable
      */
-    public function sync(): array {
+    public function sync($tenant): array {
         global $DB;
         $items = $this->endpoint->list();
         $total = is_array($items) ? count($items) : 0;
@@ -85,10 +92,12 @@ final class lehrgaenge_sync_service {
         $created = 0;
         $skipped = 0;
 
-        $defaultcatid = (int)core_course_category::get_default()->id;
-
+        $tenant = $this->tenantcreator->get_tenant($tenant);
         foreach ($items as $item) {
-            if (!is_array($item)) {
+            if (
+                !is_array($item) ||
+                !$tenant
+            ) {
                 $skipped++;
                 continue;
             }
@@ -109,10 +118,8 @@ final class lehrgaenge_sync_service {
                 continue;
             }
 
-            $fullname = (string)($externalid);
-            $shortname = (string)($item['kurzbezeichnung'] ?? $externalid);
-            $course = $this->coursecreator->create($defaultcatid, $fullname, $shortname, $externalid);
-
+            $course = $this->coursecreator->create($tenant, $item);
+            $tenant->add_course($course);
             $this->participantssync->sync_for_course($externalid, (int)$course->id);
             $this->coursemap->set_courseid($externalid, (int)$course->id);
             $created++;
