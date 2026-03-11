@@ -42,18 +42,21 @@ final class course_creator {
      *
      * @param company $tenant
      * @param array $item
-     * @return \stdClass
+     * @return \stdClass|null
      */
-    public function create(company $tenant, array $item): \stdClass {
+    public function create(company $tenant, array $item): \stdClass|null {
+        global $DB;
         $identifications = $this->set_course_identifications($item, $tenant);
-        $templatecourse = null;
+
+        $templatecourse = $this->get_previous_course($identifications);;
         // Find master course of courseshortname.
-        $templatecourse = $this->get_local_template_course($identifications['coursename']);
-        // Find global master course.
         if (empty($templatecourse)) {
-            $templatecourse = $this->get_global_template_course();
+            $templatecourse = $this->get_local_template_course($identifications['coursename']);
         }
 
+        if (empty($templatecourse)) {
+            return null;
+        }
         // Start with template-derived defaults (if available).
         $data = $this->build_course_data_from_template($templatecourse);
 
@@ -69,8 +72,30 @@ final class course_creator {
         $data->shortname = $fullname;
         $data->idnumber  = $item['id'];
         $data->visible   = 1;
-
+        if ($DB->get_record('course', ['shortname' => $fullname])) {
+            return null;
+        }
         return create_course($data);
+    }
+
+    /**
+     * Search for a course i the prior year.
+     *
+     * @param array $identifications
+     * @return array
+     */
+    private function get_previous_course(array $identifications): ?\stdClass {
+        global $DB;
+        $year = (int)$identifications['year'];
+        if ($year <= 0) {
+            return null;
+        }
+        $previousshortname = implode('-', [
+            $identifications['tenant'],
+            $identifications['coursename'],
+            $year - 1
+        ]);
+        return $DB->get_record('course', ['shortname' => $previousshortname]) ?: null;
     }
 
     /**
@@ -96,7 +121,7 @@ final class course_creator {
     private function get_local_template_course($localcourseid): \stdClass|null {
         global $DB;
 
-        $course = $DB->get_record('course', ['fullname' => $localcourseid]);
+        $course = $DB->get_record('course', ['shortname' => $localcourseid]);
         if (!$course) {
             return null;
         }

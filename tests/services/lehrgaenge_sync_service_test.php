@@ -90,6 +90,17 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             'name' => 'Test company category',
             'idnumber' => 'hp-company-category',
         ]);
+
+        $previouscourse = $this->getDataGenerator()->create_course([
+            'fullname'  => 'FD-AGT-2025',
+            'shortname' => 'FD-AGT-2025',
+            'idnumber'  => 'template-2024',
+            'category'  => $category->id,
+            'summary'   => 'Template course for previous year',
+            'format'    => 'topics',
+            'numsections' => 5,
+        ]);
+
         $company = [
             'name' => "Landkreis Bergstraße",
             'shortname' => 'FD',

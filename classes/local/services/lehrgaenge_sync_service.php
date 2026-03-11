@@ -118,6 +118,10 @@ final class lehrgaenge_sync_service {
             }
 
             $course = $this->coursecreator->create($tenant, $item);
+            if (!$course) {
+                $skipped++;
+                continue;
+            }
             $tenant->add_course($course);
             $this->participantssync->sync_for_course($externalid, (int)$course->id);
             $this->coursemap->set_courseid($externalid, (int)$course->id);

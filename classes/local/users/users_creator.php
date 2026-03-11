@@ -25,7 +25,6 @@
 namespace local_lehrgaengeapi\local\users;
 
 use local_lehrgaengeapi\local\repository\usermap_repository;
-use stdClass;
 
 /**
  * Course creator wrapper.

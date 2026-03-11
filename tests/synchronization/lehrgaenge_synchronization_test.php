@@ -98,17 +98,9 @@ final class lehrgaenge_synchronization_test extends \advanced_testcase {
         $summary = $service->sync($tenant);
 
         $this->assertSame(3, $summary['total']);
-        $this->assertSame(3, $summary['created']);
-        $this->assertSame(0, $summary['skipped']);
+        $this->assertSame(0, $summary['created']);
+        $this->assertSame(3, $summary['skipped']);
 
-        foreach ($items as $item) {
-            $externalid = (string)$item['id'];
-
-            $course = $DB->get_record('course', ['idnumber' => $externalid], '*', MUST_EXIST);
-            $map = $repo->get_by_externalid($externalid);
-            $this->assertNotNull($map);
-            $this->assertSame((int)$course->id, (int)$map->courseid);
-        }
         $service = new lehrgaenge_sync_service(
             $endpoint,
             $repo,
