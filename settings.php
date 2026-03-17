@@ -48,13 +48,6 @@ if ($hassiteconfig) {
             PARAM_URL
         ));
 
-        $settings->add(new admin_setting_configpasswordunmask(
-            $componentname . '/token',
-            get_string('token', $componentname),
-            get_string('tokendesc', $componentname),
-            ''
-        ));
-
         $settings->add(new admin_setting_configtext(
             $componentname . '/timeout',
             get_string('timeout', $componentname),
@@ -115,11 +108,12 @@ if ($hassiteconfig) {
                 ''
             ));
 
-            $settings->add(new admin_setting_configpasswordunmask(
+            $settings->add(new admin_setting_configtext(
                 $componentname . '/apikey_' . $abbrclean,
                 get_string('apikey', $componentname),
                 get_string('apikeydesc', $componentname),
-                ''
+                '',
+                PARAM_TEXT
             ));
         }
     }
