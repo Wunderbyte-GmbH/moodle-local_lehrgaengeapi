@@ -78,7 +78,10 @@ final class participant_status_handler_resolver {
             return $this->noophandler;
         }
 
-        if (strpos($status, 'ANGEMELDET') !== false) {
+        if (
+            strpos($status, 'ANGEMELDET') !== false ||
+            strpos($status, 'EINBERUFEN') !== false
+        ) {
             return $this->angemeldethandler;
         }
 

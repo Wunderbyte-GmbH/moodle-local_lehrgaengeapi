@@ -72,6 +72,14 @@ if ($hassiteconfig) {
             PARAM_INT
         ));
 
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/requestdelayms',
+            get_string('requestdelayms', $componentname),
+            get_string('requestdelaymsdesc', $componentname),
+            1000,
+            PARAM_INT
+        ));
+
         global $DB;
         $courses = $DB->get_records('course', null, 'fullname ASC', 'id, fullname, shortname');
 

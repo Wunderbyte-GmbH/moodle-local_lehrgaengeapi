@@ -29,11 +29,10 @@ $tasks = [
     [
         'classname' => '\local_lehrgaengeapi\task\sync_lehrgaenge_task',
         'blocking' => 0,
-        'minute' => '*',
-        'hour' => '*/10',
-        'day' => '*',
+        'minute' => '0',
+        'hour' => '3',
+        'dayofweek' => '0',
         'month' => '*',
-        'dayofweek' => '*',
         'faildelay' => 60,
     ],
 ];

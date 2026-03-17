@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Course creator wrapper.
+ * Tenant creator wrapper.
  *
  * @package   local_lehrgaengeapi
  * @copyright 2026 Wunderbyte GmbH
@@ -38,7 +38,7 @@ require_once($CFG->dirroot . '/course/lib.php');
  */
 final class tenant_creator {
     /**
-     * Create a Moodle course in a given category.
+     * Get a tenant by name and code.
      *
      * @param array $tenant
      * @return company|null
@@ -47,7 +47,7 @@ final class tenant_creator {
         global $DB;
         $tenant = $DB->get_record(
             'company',
-            ['name' => $tenant['name'], 'shortname' => $tenant['abbr']],
+            ['name' => $tenant['name'], 'code' => $tenant['abbr']],
             'id'
         );
         if ($tenant) {

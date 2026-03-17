@@ -79,18 +79,14 @@ final class users_creator {
                 }
             }
 
-            $email = $this->pick_email($p);
-            $u = null;
-            if ($email !== '') {
-                $u = $DB->get_record('user', ['email' => $email, 'deleted' => 0], '*', IGNORE_MISSING);
-            }
-
+            $u = $DB->get_record('user', ['idnumber' => $initialid, 'deleted' => 0], '*', IGNORE_MISSING);
             if ($u) {
                 $this->usermap->set_userid($initialid, (int)$u->id);
                 $existing++;
                 continue;
             }
 
+            $email = $this->pick_email($p);
             $firstname = trim((string)($p['vorname'] ?? ''));
             $lastname  = trim((string)($p['nachname'] ?? ''));
 
@@ -101,12 +97,7 @@ final class users_creator {
                 $lastname = $initialid;
             }
 
-            if ($email === '') {
-                // If API ever sends empty business email: create a placeholder.
-                $email = $this->placeholder_email($initialid);
-            }
-
-            $username = $this->make_unique_username($initialid);
+            $username = $initialid;
             $email = $this->make_unique_email($email);
 
             $newuser = (object)[
@@ -146,7 +137,11 @@ final class users_creator {
      * @return string
      */
     private function pick_email(array $p): string {
-        return trim((string)($p['emailBusiness'] ?? ''));
+        return trim((string)(
+                empty($p['emails']['emailBusiness']) ?
+                $this->placeholder_email($p['initialId']) :
+                $p['emails']['emailBusiness']
+        ));
     }
 
     /**
@@ -161,34 +156,6 @@ final class users_creator {
             $slug = 'user';
         }
         return $slug . '@invalid.local';
-    }
-
-    /**
-     * Make a safe + unique username based on initialId.
-     * @param string $seed
-     * @return string
-     */
-    private function make_unique_username(string $seed): string {
-        global $DB;
-
-        $base = strtolower($seed);
-        $base = preg_replace('/[^a-z0-9._-]+/', '_', $base);
-        $base = trim($base, '._-');
-        if ($base === '') {
-            $base = 'user';
-        }
-        $base = substr($base, 0, 60);
-
-        $candidate = $base;
-        $i = 0;
-
-        while ($DB->record_exists('user', ['username' => $candidate])) {
-            $i++;
-            $suffix = '_' . $i;
-            $candidate = substr($base, 0, 60 - strlen($suffix)) . $suffix;
-        }
-
-        return $candidate;
     }
 
     /**

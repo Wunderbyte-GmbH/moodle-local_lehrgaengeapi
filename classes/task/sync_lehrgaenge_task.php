@@ -65,9 +65,10 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
         try {
             // Foreach here.
             $allapiendpoints = tenants::get_all_with_keys();
+            $summary = [];
             foreach ($allapiendpoints as $apiendpoint) {
                 $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
-                $summary = $service->sync($apiendpoint);
+                $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint);
             }
             mtrace('local_lehrgaengeapi: lehrgaenge sync summary: ' . json_encode($summary));
         } catch (api_rate_limited_exception $e) {

@@ -52,6 +52,9 @@ final class participant_course_assigner {
     /** @var \context_course|null */
     private context_course|null $context;
 
+    /** @var array|null */
+    private array|null $course;
+
     /** @var int */
     private int $courseid;
 
@@ -70,6 +73,7 @@ final class participant_course_assigner {
         );
         $this->courseid = 0;
         $this->context = null;
+        $this->course = null;
         $this->manualinstance = null;
         $this->plugin = enrol_get_plugin('manual');
     }
@@ -81,18 +85,7 @@ final class participant_course_assigner {
      * @param int $courseid
      * @return array
      */
-    public function assign(array $participants, int $courseid): array {
-        return $this->prepare_and_loop_participants($participants, $courseid);
-    }
-
-    /**
-     * Prepare loop for check and subscribe participant to course completion.
-     *
-     * @param array $participants
-     * @param string $courseid
-     * @return array
-     */
-    private function prepare_and_loop_participants($participants, $courseid): array {
+    public function assign(array $participants, int $courseid, array $course): array {
         global $DB;
 
         $total = count($participants);
@@ -119,6 +112,7 @@ final class participant_course_assigner {
         $this->set_courseid($courseid);
         $this->set_manualinstance($courseid);
         $this->set_context($courseid);
+        $this->set_course($course);
 
         foreach ($participants as $participant) {
             $this->subscribe_participant(
@@ -128,6 +122,16 @@ final class participant_course_assigner {
         }
 
         return $report;
+    }
+
+    /**
+     * Sets the course context.
+     * @param array $course
+     * @return void
+     */
+    private function set_course(array $course): void {
+        $this->course = $course;
+        return;
     }
 
     /**
@@ -277,7 +281,7 @@ final class participant_course_assigner {
     private function ensure_participant_group_membership(array $participant, int $userid): bool {
         global $CFG;
         require_once($CFG->dirroot . '/group/lib.php');
-        $groupname = $this->resolve_group_name_from_participant($participant);
+        $groupname = $this->resolve_group_name_from_participant();
 
         if ($groupname === '') {
             return false;
@@ -293,23 +297,19 @@ final class participant_course_assigner {
     /**
      * Resolve course group name from participant payload.
      *
-     * @param array $participant
      * @return string
      */
-    private function resolve_group_name_from_participant(array $participant): string {
-        $orgname = trim((string)($participant['organisation']['name'] ?? ''));
-        $orgid = trim((string)($participant['organisation']['id'] ?? ''));
-
-        if ($orgname !== '') {
-            return $orgname;
+    private function resolve_group_name_from_participant(): string {
+        $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $this->course['startTag']);
+        if (!$dt) {
+            return '';
         }
 
-        // Fallback if name is not present.
-        if ($orgid !== '') {
-            return 'Organisation ' . $orgid;
-        }
+        $year = $dt->format('o');
+        $week = $dt->format('W'); // always 2 digits
+        $week = ltrim($week, '0'); // optional: "05" -> "5"
 
-        return '';
+        return 'CW' . $week . '-' . $year;
     }
 
     /**

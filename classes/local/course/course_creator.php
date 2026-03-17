@@ -42,13 +42,13 @@ final class course_creator {
      *
      * @param company $tenant
      * @param array $item
+     * @param array $identifications
      * @return \stdClass|null
      */
-    public function create(company $tenant, array $item): \stdClass|null {
+    public function create(company $tenant, array $item, array $identifications): \stdClass|null {
         global $DB;
-        $identifications = $this->set_course_identifications($item, $tenant);
 
-        $templatecourse = $this->get_previous_course($identifications);;
+        $templatecourse = $this->get_previous_course($identifications);
         // Find master course of courseshortname.
         if (empty($templatecourse)) {
             $templatecourse = $this->get_local_template_course($identifications['coursename']);
@@ -72,6 +72,7 @@ final class course_creator {
         $data->shortname = $fullname;
         $data->idnumber  = $item['id'];
         $data->visible   = 1;
+
         if ($DB->get_record('course', ['shortname' => $fullname])) {
             return null;
         }
@@ -99,21 +100,6 @@ final class course_creator {
     }
 
     /**
-     * Create a Moodle course in a given category.
-     *
-     * @param array $item
-     * @param company $tenant
-     * @return array
-     */
-    private function set_course_identifications(array $item, company $tenant): array {
-        return [
-            'tenant' => $tenant->get('shortname'),
-            'coursename' => $item['kurzbezeichnung'],
-            'year' => substr($item['endTag'], 0, 4),
-        ];
-    }
-
-    /**
      * Get the configured global template course (master course).
      * @param string $localcourseid
      * @return \stdClass|null
@@ -122,29 +108,6 @@ final class course_creator {
         global $DB;
 
         $course = $DB->get_record('course', ['shortname' => $localcourseid]);
-        if (!$course) {
-            return null;
-        }
-        if ((int)$course->id === (int)SITEID) {
-            return null;
-        }
-        return $course;
-    }
-
-    /**
-     * Get the configured global template course (master course).
-     *
-     * @return \stdClass|null
-     */
-    private function get_global_template_course(): \stdClass|null {
-        global $DB;
-
-        $globalmasterid = (int)get_config('local_lehrgaengeapi', 'targetcourseid');
-        if ($globalmasterid <= 0) {
-            return null;
-        }
-
-        $course = $DB->get_record('course', ['id' => $globalmasterid]);
         if (!$course) {
             return null;
         }

@@ -24,6 +24,7 @@
 
 namespace local_lehrgaengeapi\local\services;
 
+use company;
 use stdClass;
 use local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint_interface;
 use local_lehrgaengeapi\local\repository\coursemap_repository;
@@ -80,11 +81,19 @@ final class lehrgaenge_sync_service {
     /**
      * Sync all Lehrgaenge.
      * @param array $tenant
-     * @return array{created:int,skipped:int,total:int}
+     * @return array{created:int,skipped:int,total:int,userreport:array}
      * @throws \Throwable
      */
     public function sync($tenant): array {
         global $DB;
+        if (empty($tenant['apikey'])) {
+            return [
+                'created' => 0,
+                'skipped' => 0,
+                'total' => 0,
+                'userreport' => [],
+            ];
+        }
         $items = $this->endpoint->list();
         $total = is_array($items) ? count($items) : 0;
 
@@ -92,6 +101,8 @@ final class lehrgaenge_sync_service {
         $skipped = 0;
 
         $tenant = $this->tenantcreator->get_tenant($tenant);
+
+        $userreport = [];
         foreach ($items as $item) {
             if (
                 !is_array($item) ||
@@ -108,22 +119,24 @@ final class lehrgaenge_sync_service {
             }
 
             // Check if course exists by idnumber (we use external id as idnumber).
-            $existing = $DB->get_record('course', ['idnumber' => $externalid], '*', IGNORE_MISSING);
+            $identifications = $this->set_course_identifications($item, $tenant);
+            $shortname = implode('-', $identifications);
+            $existing = $DB->get_record('course', ['shortname' => $shortname], '*', IGNORE_MISSING);
 
             if ($existing) {
                 $this->coursemap->set_courseid($externalid, (int)$existing->id);
-                $this->participantssync->sync_for_course($externalid, (int)$existing->id);
+                $userreport[$existing->id] = $this->participantssync->sync_for_course($externalid, (int)$existing->id, $item);
                 $skipped++;
                 continue;
             }
 
-            $course = $this->coursecreator->create($tenant, $item);
+            $course = $this->coursecreator->create($tenant, $item, $identifications);
             if (!$course) {
                 $skipped++;
                 continue;
             }
             $tenant->add_course($course);
-            $this->participantssync->sync_for_course($externalid, (int)$course->id);
+            $userreport[$course->id] = $this->participantssync->sync_for_course($externalid, (int)$course->id, $item);
             $this->coursemap->set_courseid($externalid, (int)$course->id);
             $created++;
         }
@@ -132,6 +145,22 @@ final class lehrgaenge_sync_service {
             'created' => $created,
             'skipped' => $skipped,
             'total' => $total,
+            'userreport' => $userreport,
+        ];
+    }
+
+    /**
+     * Create a Moodle course in a given category.
+     *
+     * @param array $item
+     * @param company $tenant
+     * @return array
+     */
+    private function set_course_identifications(array $item, company $tenant): array {
+        return [
+            'tenant' => $tenant->get('code'),
+            'coursename' => $item['kurzbezeichnung'],
+            'year' => substr($item['endTag'], 0, 4),
         ];
     }
 

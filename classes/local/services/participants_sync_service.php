@@ -68,13 +68,22 @@ final class participants_sync_service {
      *
      * @param string $externalid External Lehrgang ID.
      * @param int $courseid Moodle course ID.
+     * @param array $course Lehrgang payload (decoded).
      * @return array{created:int,existing:int,skipped:int,total:int}
      * @throws \Throwable
      */
-    public function sync_for_course(string $externalid, int $courseid): array {
+    public function sync_for_course(string $externalid, int $courseid, array $course): array {
+        $delayms = (int)get_config('local_lehrgaengeapi', 'requestdelayms');
+        if ($delayms > 0) {
+            usleep($delayms * 1000);
+        }
+
         $participants = $this->endpoint->participants($externalid);
 
-        if (!is_array($participants)) {
+        if (
+            !is_array($participants) ||
+            empty($participants)
+        ) {
             return [
                 'created' => 0,
                 'existing' => 0,
@@ -83,7 +92,7 @@ final class participants_sync_service {
             ];
         }
         $usersummary = $this->usercreator->create($participants);
-        $assignsummary = $this->assigner->assign($participants, $courseid);
+        $assignsummary = $this->assigner->assign($participants, $courseid, $course);
 
         return [
             'users' => $usersummary,
