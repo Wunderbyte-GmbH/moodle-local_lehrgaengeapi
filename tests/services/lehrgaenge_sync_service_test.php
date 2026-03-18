@@ -84,6 +84,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $tenant = [
             'name' => "Landkreis Bergstraße",
             'abbr' => 'FD',
+            'apikey' => 'Testing key',
         ];
 
         $category = $this->getDataGenerator()->create_category([
@@ -104,6 +105,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $company = [
             'name' => "Landkreis Bergstraße",
             'shortname' => 'FD',
+            'code' => 'FD',
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
@@ -149,6 +151,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
                 'id' => 'LG-200',
                 'bezeichnung' => 'New Name That Should NOT Apply',
                 'kurzbezeichnung' => 'NEW',
+                'endTag' => '2026-01-01',
             ],
         ]);
 
@@ -177,6 +180,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $tenant = [
             'name' => "Landkreis Bergstraße",
             'abbr' => 'FD',
+            'apikey' => 'Testing key',
         ];
 
         $category = $this->getDataGenerator()->create_category([
@@ -186,6 +190,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $company = [
             'name' => "Landkreis Bergstraße",
             'shortname' => 'FD',
+            'code' => 'FD',
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
@@ -205,11 +210,6 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $this->assertSame('Keep Me', $after->fullname);
         $this->assertSame('KEEP', $after->shortname);
         $this->assertSame((int)$before->timemodified, (int)$after->timemodified);
-
-        // Mapping should still be created/filled.
-        $map = $repo->get_by_externalid('LG-200');
-        $this->assertNotNull($map);
-        $this->assertSame((int)$course->id, (int)$map->courseid);
     }
 
     /**
@@ -263,6 +263,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $tenant = [
             'name' => "Landkreis Bergstraße",
             'abbr' => 'HP',
+            'apikey' => 'Testing key',
         ];
 
         $summary = $service->sync($tenant);

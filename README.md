@@ -1,65 +1,42 @@
 ```mermaid
-flowchart LR
-  %% Scheduler
-  subgraph Scheduler [Scheduler]
+    flowchart LR
+
+    subgraph Scheduler
     Cron["Moodle Cron / Scheduled Task Runner"]
     Task["sync_lehrgaenge_task"]
-  end
-  Cron --> Task
-  Task --> Lock["core\\lock<br/>(prevents concurrent runs)"]
-  Task --> Factory["Factory"]
+    end
 
-  %% Local services grouped vertically for clarity
-  subgraph Services [Local Services]
+    Cron --> Task
+    Task --> Lock["core lock\n(prevents concurrent runs)"]
+    Task --> Factory["factory"]
+
+    Config["Plugin config\nbaseurl | timeout | token"] --> Factory
+
+    subgraph Services
     direction TB
-    Factory --> SyncService["lehrgaenge_sync_service<br/>(orchestrator)"]
+    Factory --> SyncService["lehrgaenge_sync_service\n(orchestrator)"]
     SyncService --> CourseFlow["Course Sync"]
     SyncService --> ParticipantsSyncSvc["Participants Sync"]
-  end
-
-  %% External API cluster (keeps external calls on the right)
-  # Lehrgaenge API
-
-  ```mermaid
-  flowchart LR
-    %% Scheduler
-    subgraph Scheduler [Scheduler]
-      Cron["Moodle Cron / Scheduled Task Runner"]
-      Task["sync_lehrgaenge_task"]
-    end
-    Cron --> Task
-    Task --> Lock["core\\lock<br/>(prevents concurrent runs)"]
-    Task --> Factory["Factory"]
-
-    %% Local services grouped vertically for clarity
-    subgraph Services [Local Services]
-      direction TB
-      Factory --> SyncService["lehrgaenge_sync_service<br/>(orchestrator)"]
-      SyncService --> CourseFlow["Course Sync"]
-      SyncService --> ParticipantsSyncSvc["Participants Sync"]
     end
 
-    %% External API cluster (keeps external calls on the right)
-    subgraph API [External API]
-      direction TB
-      Auth["token_authenticator"]
-      Client["api_client<br/>(HTTP Client)"]
-      Curl["curl<br/>(lib/filelib.php)"]
-      External["External ZMS API"]
-      Auth --> Client
-      Client --> Curl --> External
+    subgraph API
+    direction TB
+    Auth["token_authenticator"]
+    Client["api_client\nHTTP Client"]
+    Curl["curl lib/filelib.php"]
+    External["External ZMS API"]
+    Auth --> Client
+    Client --> Curl --> External
     end
 
-    %% Moodle platform cluster (bottom-right)
-    subgraph Moodle [Moodle Platform]
-      direction TB
-      MoodleDB["Moodle DB<br/>(mapping tables)"]
-      MoodleCourseAPI["Moodle Course API<br/>(create/update)"]
-      MoodleUserAPI["Moodle User API<br/>(create/update)"]
+    subgraph Moodle
+    direction TB
+    MoodleDB["Moodle DB\nmapping tables"]
+    MoodleCourseAPI["Moodle Course API\ncreate/update"]
+    MoodleUserAPI["Moodle User API\ncreate/update"]
     end
 
-    %% Connections between services and API / Moodle
-    SyncService --> Endpoint["lehrgaenge_endpoint<br/>(API Facade)"]
+    SyncService --> Endpoint["lehrgaenge_endpoint\nAPI Facade"]
     Endpoint --> Client
 
     CourseFlow --> CourseCreator["course_creator"]
@@ -74,22 +51,20 @@ flowchart LR
     UsersCreator --> MoodleUserAPI
     ParticipantAssigner --> MoodleCourseAPI
 
-    %% Participant status handlers grouped to the right of participants flow
-    subgraph Status [Participant Status Handling]
-      direction LR
-      Resolver["participant_status_handler_resolver"]
-      Handlers["Handlers:<br/>angemeldet, bestanden, noop"]
-      Action["participant_status_action"]
-      Resolver --> Handlers --> Action --> MoodleUserAPI
+    subgraph Status
+    direction LR
+    Resolver["participant_status_handler_resolver"]
+    Handlers["Handlers: angemeldet | bestanden | noop"]
+    Action["participant_status_action"]
+    Resolver --> Handlers --> Action --> MoodleUserAPI
     end
+
     ParticipantsSyncSvc --> Resolver
 
-    %% Response & error handling (kept close to API cluster)
-    Client -->|2xx| Response["api_response<br/>(body/status/headers)"]
-    Client -->|Error| ApiEx["api_exception<br/>(401/403/404/429/500)"]
+    Client -->|2xx| Response["api_response\nbody/status/headers"]
+    Client -->|Error| ApiEx["api_exception\ntyped errors"]
     Response --> Endpoint
     ApiEx --> Task
 
-    %% Cosmetic: keep main orchestration visible
     Task --> SyncService
-  ```
+```

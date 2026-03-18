@@ -83,6 +83,7 @@ final class participant_course_assigner {
      *
      * @param array $participants
      * @param int $courseid
+     * @param array $course
      * @return array
      */
     public function assign(array $participants, int $courseid, array $course): array {
@@ -300,16 +301,59 @@ final class participant_course_assigner {
      * @return string
      */
     private function resolve_group_name_from_participant(): string {
-        $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $this->course['startTag']);
-        if (!$dt) {
+        global $DB;
+        $starttag = '';
+        if (is_array($this->course) && isset($this->course['startTag'])) {
+            $starttag = (string)$this->course['startTag'];
+        }
+        if ($starttag === '') {
             return '';
         }
+        $sql = "courseid = :courseid AND " . $DB->sql_like('name', ':pattern', false);
+        $params = [
+            'courseid' => $this->courseid,
+            'pattern' => '% (' . $starttag . ')',
+        ];
 
-        $year = $dt->format('o');
-        $week = $dt->format('W'); // always 2 digits
-        $week = ltrim($week, '0'); // optional: "05" -> "5"
+        $existinggroup = $DB->get_record_select('groups', $sql, $params, 'id, name');
+        if ($existinggroup) {
+            return $existinggroup->name;
+        }
+        $nextcounter = $this->get_groupcounter($starttag);
+        return 'G' . str_pad((string)$nextcounter, 2, '0', STR_PAD_LEFT) . ' (' . $starttag . ')';
+    }
 
-        return 'CW' . $week . '-' . $year;
+    /**
+     * Get group counter for a given course group.
+     *
+     * @param string $starttag
+     * @return int Group ID or 0 on failure.
+     */
+    private function get_groupcounter(string $starttag): int {
+        global $DB;
+        $groups = $DB->get_records('groups', ['courseid' => $this->courseid], 'id ASC', 'id, name');
+        $nextcounter = 1;
+
+        foreach ($groups as $group) {
+            if (empty($group->name)) {
+                continue;
+            }
+
+            if (!preg_match('/^G(\d{2}) \(([^)]+)\)$/', $group->name, $matches)) {
+                continue;
+            }
+
+            // Reuse existing group for the same start tag.
+            if ($matches[2] === $starttag) {
+                return $group->name;
+            }
+
+            $counter = (int)$matches[1];
+            if ($counter >= $nextcounter) {
+                $nextcounter = $counter + 1;
+            }
+        }
+        return $nextcounter;
     }
 
     /**

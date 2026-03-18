@@ -106,7 +106,6 @@ final class api_client {
         $cfg = get_config('local_lehrgaengeapi');
         $clientcert = $cfg->clientcert ?? '';
         $clientkey  = $cfg->clientkey ?? '';
-        $cainfo     = $cfg->cainfo ?? '';
 
         $options = [
             'CURLOPT_TIMEOUT' => $this->timeoutseconds,
@@ -115,10 +114,6 @@ final class api_client {
         if (!empty($clientcert) && !empty($clientkey)) {
             $options['CURLOPT_SSLCERT'] = $clientcert;
             $options['CURLOPT_SSLKEY']  = $clientkey;
-        }
-
-        if (!empty($cainfo)) {
-            $options['CURLOPT_CAINFO'] = $cainfo;
         }
 
         $this->curl->setHeader('Accept: application/json');
@@ -141,6 +136,13 @@ final class api_client {
 
         if ($status >= 200 && $status < 300) {
             return new api_response($status, (string)$body, $headers);
+        }
+
+        // For HTTP 0 (no response), include the cURL error for a more actionable message.
+        if ($status === 0) {
+            $curlerror = $this->curl->error ?? '';
+            $detail = $curlerror !== '' ? ": {$curlerror}" : '';
+            throw new api_exception("External API request failed: HTTP 0 for {$url}{$detail}", 0, '', []);
         }
 
         $this->throw_for_status($status, (string)$body, $headers, $url);

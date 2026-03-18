@@ -53,7 +53,7 @@ final class factory {
         $config = get_config('local_lehrgaengeapi');
 
         $baseurl = isset($config->baseurl) ? (string)$config->baseurl : '';
-        $timeout = isset($config->timeoutseconds) ? (int)$config->timeoutseconds : 30;
+        $timeout = isset($config->timeout) ? (int)$config->timeout : 30;
 
         $auth = new token_authenticator($token);
         $client = new api_client($baseurl, $auth, $timeout);

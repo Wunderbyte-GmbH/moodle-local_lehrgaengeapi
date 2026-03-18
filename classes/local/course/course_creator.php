@@ -94,7 +94,7 @@ final class course_creator {
         $previousshortname = implode('-', [
             $identifications['tenant'],
             $identifications['coursename'],
-            $year - 1
+            $year - 1,
         ]);
         return $DB->get_record('course', ['shortname' => $previousshortname]) ?: null;
     }

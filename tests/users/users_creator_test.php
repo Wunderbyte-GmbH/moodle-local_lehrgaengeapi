@@ -22,11 +22,10 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lehrgaengeapi\local\users;
+namespace local_lehrgaengeapi\users;
 
 use local_lehrgaengeapi\local\repository\usermap_repository;
-
-defined('MOODLE_INTERNAL') || die();
+use local_lehrgaengeapi\local\users\users_creator;
 
 /**
  * Tests for users_creator.

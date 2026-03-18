@@ -104,6 +104,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $tenant = [
             'name' => "Landkreis Bergstraße",
             'abbr' => 'FD',
+            'apikey' => 'Testing key',
         ];
 
         $category = $this->getDataGenerator()->create_category([
@@ -114,6 +115,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
         $company = [
             'name' => "Landkreis Bergstraße",
             'shortname' => 'FD',
+            'code' => 'FD',
             'city' => 'Fulda',
             'postcode' => 1234,
             'country' => 'DE',
