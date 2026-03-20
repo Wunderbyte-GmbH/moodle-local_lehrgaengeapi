@@ -137,11 +137,13 @@ final class users_creator {
      * @return string
      */
     private function pick_email(array $p): string {
-        return trim((string)(
-                empty($p['emails']['emailBusiness']) ?
-                $this->placeholder_email($p['initialId']) :
-                $p['emails']['emailBusiness']
-        ));
+        if (!empty($p['emails']['emailBusiness'])) {
+            return trim((string)$p['emails']['emailBusiness']);
+        }
+        if (!empty($p['emails']['emailPrivat'])) {
+            return trim((string)$p['emails']['emailPrivat']);
+        }
+        return $this->placeholder_email($p['initialId']);
     }
 
     /**

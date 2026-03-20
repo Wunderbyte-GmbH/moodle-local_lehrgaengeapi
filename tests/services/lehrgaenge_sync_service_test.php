@@ -92,13 +92,13 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
             'idnumber' => 'hp-company-category',
         ]);
 
-        $previouscourse = $this->getDataGenerator()->create_course([
-            'fullname'  => 'FD-AGT-2025',
-            'shortname' => 'FD-AGT-2025',
-            'idnumber'  => 'template-2024',
-            'category'  => $category->id,
-            'summary'   => 'Template course for previous year',
-            'format'    => 'topics',
+        // Create local template course.
+        $this->getDataGenerator()->create_course([
+            'category' => $category->id,
+            'fullname' => 'AGT master',
+            'shortname' => 'AGT',
+            'summary' => 'Template',
+            'format' => 'topics',
             'numsections' => 5,
         ]);
 
@@ -120,8 +120,8 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         $this->assertSame(1, $summary['total']);
 
         $course = $DB->get_record('course', ['idnumber' => 'LG-100'], '*', MUST_EXIST);
-        $this->assertSame('FD-AGT-2026', $course->fullname);
-        $this->assertSame('FD-AGT-2026', $course->shortname);
+        $this->assertSame('AGT', $course->fullname);
+        $this->assertSame('FD-AGT-26', $course->shortname);
 
         $map = $repo->get_by_externalid('LG-100');
         $this->assertNotNull($map);
@@ -286,18 +286,22 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
      * @param array $items List payload.
      * @return lehrgaenge_endpoint_interface
      */
-    private function fake_endpoint(array $items): lehrgaenge_endpoint_interface {
-        return new class ($items) implements lehrgaenge_endpoint_interface {
+    private function fake_endpoint(array $items, array $participantsbyid = []): lehrgaenge_endpoint_interface {
+        return new class ($items, $participantsbyid) implements lehrgaenge_endpoint_interface {
             /** @var array<mixed> */
             private array $items;
+
+            /** @var array<string, array> */
+            private array $participantsbyid;
 
             /**
              * Constructor.
              *
              * @param array $items Items to return from list().
              */
-            public function __construct(array $items) {
+            public function __construct(array $items, array $participantsbyid) {
                 $this->items = $items;
+                $this->participantsbyid = $participantsbyid;
             }
 
             /**
@@ -327,7 +331,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
              * @return array
              */
             public function participants(string $id): array {
-                return [];
+                return $this->participantsbyid[$id] ?? [];
             }
 
             /**

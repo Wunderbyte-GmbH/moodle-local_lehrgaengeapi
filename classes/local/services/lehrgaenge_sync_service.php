@@ -118,14 +118,25 @@ final class lehrgaenge_sync_service {
                 continue;
             }
 
-            // Check if course exists by idnumber (we use external id as idnumber).
+            // Check if course exists by naming convention (current or CURRENTYEAR_alt).
             $identifications = $this->set_course_identifications($item, $tenant);
             $shortname = implode('-', $identifications);
             $existing = $DB->get_record('course', ['shortname' => $shortname], '*', IGNORE_MISSING);
 
+            if (!$existing) {
+                $altshortname = $this->resolve_alt_shortname_for_past_course($identifications);
+                if ($altshortname !== null) {
+                    $existing = $DB->get_record('course', ['shortname' => $altshortname], '*', IGNORE_MISSING);
+                }
+            }
+
             if ($existing) {
                 $this->coursemap->set_courseid($externalid, (int)$existing->id);
-                $userreport[$existing->id] = $this->participantssync->sync_for_course($externalid, (int)$existing->id, $item);
+                $userreport[$existing->id] = $this->participantssync->sync_for_course(
+                    $externalid,
+                    (int)$existing->id,
+                    $this->build_assignment_course_payload($item, (string)$existing->shortname)
+                );
                 $skipped++;
                 continue;
             }
@@ -136,7 +147,11 @@ final class lehrgaenge_sync_service {
                 continue;
             }
             $tenant->add_course($course);
-            $userreport[$course->id] = $this->participantssync->sync_for_course($externalid, (int)$course->id, $item);
+            $userreport[$course->id] = $this->participantssync->sync_for_course(
+                $externalid,
+                (int)$course->id,
+                $this->build_assignment_course_payload($item, (string)$course->shortname)
+            );
             $this->coursemap->set_courseid($externalid, (int)$course->id);
             $created++;
         }
@@ -157,11 +172,76 @@ final class lehrgaenge_sync_service {
      * @return array
      */
     private function set_course_identifications(array $item, company $tenant): array {
+        $coursename = $this->resolve_coursename_identifier($item);
         return [
             'tenant' => $tenant->get('code'),
-            'coursename' => $item['kurzbezeichnung'],
-            'year' => substr($item['endTag'], 0, 4),
+            'coursename' => $coursename,
+            'year' => substr($item['endTag'], 2, 2),
         ];
+    }
+
+    /**
+     * Resolve course identifier used in naming convention.
+     *
+     * Special case: F-III e-learning is mapped to F-IIIe.
+     *
+     * @param array $item
+     * @return string
+     */
+    private function resolve_coursename_identifier(array $item): string {
+        $kurzbezeichnung = (string)($item['kurzbezeichnung'] ?? '');
+        if ($kurzbezeichnung !== 'F-III') {
+            return $kurzbezeichnung;
+        }
+
+        $bezeichnung = mb_strtolower(trim((string)($item['bezeichnung'] ?? '')));
+        if ($bezeichnung === '') {
+            return $kurzbezeichnung;
+        }
+
+        if (mb_strpos($bezeichnung, 'e-learning') !== false) {
+            return 'F-IIIe';
+        }
+
+        return $kurzbezeichnung;
+    }
+
+    /**
+     * Build course payload for participant assignment with optional flags.
+     *
+     * @param array $item
+     * @param string $shortname
+     * @return array
+     */
+    private function build_assignment_course_payload(array $item, string $shortname): array {
+        if (substr($shortname, -4) === '_alt') {
+            $item['_skipgroupassignment'] = true;
+        }
+
+        return $item;
+    }
+
+    /**
+     * Resolve CURRENTYEAR_alt shortname if the source course year is in the past.
+     *
+     * @param array $identifications
+     * @return string|null
+     */
+    private function resolve_alt_shortname_for_past_course(array $identifications): ?string {
+        $year = (string)($identifications['year'] ?? '');
+        if (!preg_match('/^\d{2}$/', $year)) {
+            return null;
+        }
+
+        if ((int)$year >= (int)date('y')) {
+            return null;
+        }
+
+        return implode('-', [
+            $identifications['tenant'],
+            $identifications['coursename'],
+            date('y'),
+        ]) . '_alt';
     }
 
     /**

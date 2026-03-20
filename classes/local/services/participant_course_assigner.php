@@ -230,8 +230,8 @@ final class participant_course_assigner {
                 $isenrolled = true;
             }
 
-            // If user is enrolled (already or newly), ensure group membership.
-            if ($isenrolled) {
+            // If user is enrolled (already or newly), ensure group membership unless explicitly disabled.
+            if ($isenrolled && !$this->skip_group_assignment()) {
                 $this->ensure_participant_group_membership($participant, $userid);
             }
         }
@@ -241,6 +241,19 @@ final class participant_course_assigner {
                 $report['completed']++;
             }
         }
+    }
+
+    /**
+     * Whether group assignment should be skipped for this course payload.
+     *
+     * @return bool
+     */
+    private function skip_group_assignment(): bool {
+        if (!is_array($this->course)) {
+            return false;
+        }
+
+        return !empty($this->course['_skipgroupassignment']);
     }
 
     /**

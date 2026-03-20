@@ -66,17 +66,54 @@ final class course_creator {
             $data->enddate   = make_timestamp($year, 12, 31, 23, 59, 59);
         }
 
-        $fullname = implode('-', $identifications);
+        $baseshortname = implode('-', $identifications);
+        $shortname = $this->resolve_target_shortname($identifications, $baseshortname);
         $data->category  = $tenant->get('category');
-        $data->fullname  = $fullname;
-        $data->shortname = $fullname;
+        $data->fullname  = $identifications['coursename'];
+        $data->shortname = $shortname;
         $data->idnumber  = $item['id'];
         $data->visible   = 1;
 
-        if ($DB->get_record('course', ['shortname' => $fullname])) {
+        if ($DB->get_record('course', ['shortname' => $shortname])) {
             return null;
         }
         return create_course($data);
+    }
+
+    /**
+     * Resolve the shortname that should be created for a given Lehrgang.
+     *
+     * If the Lehrgang year is in the past, we create it under CURRENTYEAR_alt.
+     *
+     * @param array $identifications
+     * @param string $baseshortname
+     * @return string
+     */
+    private function resolve_target_shortname(array $identifications, string $baseshortname): string {
+        if (!$this->is_past_year((string)($identifications['year'] ?? ''))) {
+            return $baseshortname;
+        }
+
+        $currentyear = date('y');
+        return implode('-', [
+            $identifications['tenant'],
+            $identifications['coursename'],
+            $currentyear,
+        ]) . '_alt';
+    }
+
+    /**
+     * Whether the given two-digit year is in the past.
+     *
+     * @param string $year
+     * @return bool
+     */
+    private function is_past_year(string $year): bool {
+        if (!preg_match('/^\d{2}$/', $year)) {
+            return false;
+        }
+
+        return (int)$year < (int)date('y');
     }
 
     /**
