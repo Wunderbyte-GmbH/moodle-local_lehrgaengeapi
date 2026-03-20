@@ -70,6 +70,9 @@ jobs:
          echo "=== Installing IOMAD ==="
          git clone https://github.com/iomad/iomad.git moodle/local/iomad
          echo "IOMAD installed"
+         cd moodle
+         php admin/tool/phpunit/cli/init.php
+         cd ..
 
     secrets:
       ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
