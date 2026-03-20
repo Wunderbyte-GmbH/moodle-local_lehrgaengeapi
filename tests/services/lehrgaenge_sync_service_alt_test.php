@@ -203,6 +203,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
      * Create a fake endpoint instance that returns fixed list() data.
      *
      * @param array $items List payload.
+     * @param array $participantsbyid Participants by ID payload.
      * @return lehrgaenge_endpoint_interface
      */
     private function fake_endpoint(array $items, array $participantsbyid = []): lehrgaenge_endpoint_interface {
@@ -217,6 +218,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
              * Constructor.
              *
              * @param array $items Items to return from list().
+             * @param array $participantsbyid Participants by ID payload.
              */
             public function __construct(array $items, array $participantsbyid) {
                 $this->items = $items;

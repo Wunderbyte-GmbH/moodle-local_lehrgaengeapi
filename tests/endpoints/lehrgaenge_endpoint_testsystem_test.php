@@ -93,7 +93,7 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
             'ecommerce'              => 0,
             'managerdigestday'       => 0,
             'previousroletemplateid' => 0,
-            'previousemailtemplateid'=> 0,
+            'previousemailtemplateid' => 0,
             'departmentprofileid'    => 0,
         ];
         $companyid = $DB->insert_record('company', $companyrecord);

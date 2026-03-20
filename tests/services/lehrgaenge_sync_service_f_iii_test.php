@@ -41,7 +41,7 @@ use local_lehrgaengeapi\local\users\users_creator;
  * @copyright 2026 Wunderbyte GmbH
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-final class lehrgaenge_sync_service_f_III_test extends \advanced_testcase {
+final class lehrgaenge_sync_service_f_iii_test extends \advanced_testcase {
     /**
      * F-III courses are split by long name into F-III and F-IIIe.
      *
@@ -201,6 +201,7 @@ final class lehrgaenge_sync_service_f_III_test extends \advanced_testcase {
      * Create a fake endpoint instance that returns fixed list() data.
      *
      * @param array $items List payload.
+     * @param array $participantsbyid Participants by ID payload.
      * @return lehrgaenge_endpoint_interface
      */
     private function fake_endpoint(array $items, array $participantsbyid = []): lehrgaenge_endpoint_interface {
@@ -215,6 +216,7 @@ final class lehrgaenge_sync_service_f_III_test extends \advanced_testcase {
              * Constructor.
              *
              * @param array $items Items to return from list().
+             * @param array $participantsbyid Participants by ID payload.
              */
             public function __construct(array $items, array $participantsbyid) {
                 $this->items = $items;
