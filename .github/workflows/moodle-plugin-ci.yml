@@ -9,8 +9,6 @@ jobs:
       # Change these based on your plugin's requirements
 
       disable_release: true  # Use true if using the tag-based release workflow
-      extra_plugin_runners: |
-        moodle-plugin-ci add-plugin --branch IOMAD_405_STABLE iomad/iomad
 
       # moodle_branches: "MOODLE_401_STABLE MOODLE_402_STABLE"  # Optional: Only test specific Moodle versions
       # min_php: "7.4"  # Optional: Set minimum PHP version
@@ -69,6 +67,9 @@ jobs:
          # Go Back to main directory
          cd ..
          # END OF WORKAROUND
+         echo "=== Installing IOMAD ==="
+         git clone https://github.com/iomad/iomad.git moodle/local/iomad
+         echo "IOMAD installed"
 
     secrets:
       ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
