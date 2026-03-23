@@ -46,6 +46,9 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
      */
     public function test_testserver_data(): void {
         global $CFG, $DB;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
 
         $this->resetAfterTest(true);
 

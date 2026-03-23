@@ -48,6 +48,10 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
     public function test_sync_creates_courses_from_dummydata_fixture(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
         global $DB;
         $this->resetAfterTest(true);
         set_config('enablecompletion', 1);

@@ -48,6 +48,10 @@ final class lehrgaenge_sync_service_f_iii_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
     public function test_f_iii_courses_are_split_by_bezeichnung_and_participants_go_to_correct_course(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
         global $DB;
 
         $this->resetAfterTest(true);
@@ -55,7 +59,6 @@ final class lehrgaenge_sync_service_f_iii_test extends \advanced_testcase {
 
         $currentyearfull = (int)date('Y');
         $currentyearshort = date('y');
-
         $items = [
             [
                 'id' => 'LG-FIII-100',

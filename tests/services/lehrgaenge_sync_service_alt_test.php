@@ -49,6 +49,10 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
     public function test_past_year_course_uses_current_year_alt_and_assigns_without_group(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
         global $DB;
 
         $this->resetAfterTest(true);

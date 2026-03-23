@@ -48,6 +48,10 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
     public function test_creates_course_and_mapping(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
         global $DB;
         $this->resetAfterTest(true);
         set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
@@ -134,6 +138,10 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
     public function test_existing_course_is_not_modified(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
         global $DB;
         $this->resetAfterTest(true);
         set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
@@ -218,6 +226,10 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
     public function test_existing_mapping_is_respected(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
         global $DB;
         $this->resetAfterTest(true);
         set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
