@@ -55,6 +55,19 @@ final class lehrgaenge_sync_service {
     /** @var tenant_creator */
     private tenant_creator $tenantcreator;
 
+    /** @var array */
+    private array $coursematching = [
+        'F-I' => 'F-I',
+        'F-II' => 'F-II',
+        'F-Atr' => 'F-ATR',
+        'F-Ma' => 'F-MA',
+        'F/K-Sprechfunk' => 'F/K-SPF',
+        'F-TH-VU' => 'F-TH-VU',
+        'F/B-mobBSA-Hesser' => 'F-BSA',
+        'F/B-BSA-Sem.' => 'F-BSA',
+        'F-III' => 'F-III-elearn',
+    ];
+
     /**
      * Constructor.
      *
@@ -190,6 +203,9 @@ final class lehrgaenge_sync_service {
      */
     private function resolve_coursename_identifier(array $item): string {
         $kurzbezeichnung = (string)($item['kurzbezeichnung'] ?? '');
+        if (isset($this->coursematching[$kurzbezeichnung])) {
+            $kurzbezeichnung = $this->coursematching[$kurzbezeichnung];
+        }
         if ($kurzbezeichnung !== 'F-III') {
             return $kurzbezeichnung;
         }
@@ -200,7 +216,7 @@ final class lehrgaenge_sync_service {
         }
 
         if (mb_strpos($bezeichnung, 'e-learning') !== false) {
-            return 'F-IIIe';
+            return $this->coursematching['F-III'];
         }
 
         return $kurzbezeichnung;

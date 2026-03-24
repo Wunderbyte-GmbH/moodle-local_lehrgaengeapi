@@ -29,6 +29,7 @@ $string['apikeydesc'] = 'Enter the API key for this mandant.';
 $string['apirequestfailed'] = 'External API request failed.';
 $string['baseurl'] = 'Base URL';
 $string['baseurldesc'] = 'Base URL of the external API, e.g. https://api.example.com';
+$string['completion'] = 'Completed';
 $string['intervallehrgaenge'] = 'Sync interval: Lehrgänge list (seconds)';
 $string['intervallehrgaengedesc'] = 'How often the scheduled task should sync the Lehrgänge list.';
 $string['intervalteilnehmer'] = 'Sync interval: Teilnehmer (seconds)';

@@ -61,6 +61,10 @@ final class course_creator {
         $data = $this->build_course_data_from_template($templatecourse);
 
         $year = (int)$identifications['year'];
+        // Convert 2-digit year to 4-digit year (e.g., 25 -> 2025)
+        if ($year > 0 && $year < 100) {
+            $year = 2000 + $year;
+        }
         if ($year > 0) {
             $data->startdate = make_timestamp($year, 1, 1, 0, 0, 0);
             $data->enddate   = make_timestamp($year, 12, 31, 23, 59, 59);
@@ -70,6 +74,9 @@ final class course_creator {
         $shortname = $this->resolve_target_shortname($identifications, $baseshortname);
         $data->category  = $tenant->get('category');
         $data->fullname  = $identifications['coursename'];
+        if (str_ends_with($shortname, '_alt')) {
+            $data->fullname .= ' ' . get_string('completion', 'local_lehrgaengeapi');
+        }
         $data->shortname = $shortname;
         $data->idnumber  = $item['id'];
         $data->visible   = 1;
@@ -77,7 +84,14 @@ final class course_creator {
         if ($DB->get_record('course', ['shortname' => $shortname])) {
             return null;
         }
-        return create_course($data);
+        $newcourse = create_course($data);
+
+        // Copy course content from template if course was created successfully.
+        if ($newcourse && $templatecourse) {
+            $this->copy_course_content($templatecourse, $newcourse);
+        }
+
+        return $newcourse;
     }
 
     /**
@@ -196,5 +210,25 @@ final class course_creator {
         }
 
         return $data;
+    }
+
+    /**
+     * Queue an adhoc task to copy all course content from template into new course.
+     *
+     * The actual backup/restore runs asynchronously so the sync task is not blocked
+     * and participant assignment can proceed immediately after course creation.
+     *
+     * @param \stdClass $templatecourse
+     * @param \stdClass $newcourse
+     * @return void
+     */
+    private function copy_course_content(\stdClass $templatecourse, \stdClass $newcourse): void {
+        $task = new \local_lehrgaengeapi\task\copy_course_content_task();
+        $task->set_custom_data([
+            'templatecourseid' => $templatecourse->id,
+            'newcourseid'      => $newcourse->id,
+            'adminid'          => get_admin()->id,
+        ]);
+        \core\task\manager::queue_adhoc_task($task, true);
     }
 }
