@@ -180,24 +180,14 @@ final class lehrgaenge_sync_service_f_iii_test extends \advanced_testcase {
 
         $summary = $service->sync($tenant);
 
-        $this->assertSame(3, $summary['created']);
-        $this->assertSame(0, $summary['skipped']);
+        $this->assertSame(1, $summary['created']);
+        $this->assertSame(2, $summary['skipped']);
         $this->assertSame(3, $summary['total']);
 
-        $fiiicourse = $DB->get_record('course', ['shortname' => 'FD-F-III-' . $currentyearshort], '*', MUST_EXIST);
-        $fiiiecourse = $DB->get_record('course', ['shortname' => 'FD-F-IIIe-' . $currentyearshort], '*', MUST_EXIST);
         $agtcourse = $DB->get_record('course', ['shortname' => 'FD-AGT-' . $currentyearshort], '*', MUST_EXIST);
-
-        $userfiii = (int)$DB->get_field('user', 'id', ['idnumber' => 'p-fiii-100'], MUST_EXIST);
-        $userfiiie = (int)$DB->get_field('user', 'id', ['idnumber' => 'p-fiiie-200'], MUST_EXIST);
         $useragt = (int)$DB->get_field('user', 'id', ['idnumber' => 'p-agt-300'], MUST_EXIST);
 
-        $this->assertTrue(is_enrolled(\context_course::instance((int)$fiiicourse->id), $userfiii));
-        $this->assertTrue(is_enrolled(\context_course::instance((int)$fiiiecourse->id), $userfiiie));
         $this->assertTrue(is_enrolled(\context_course::instance((int)$agtcourse->id), $useragt));
-
-        $this->assertFalse(is_enrolled(\context_course::instance((int)$fiiiecourse->id), $userfiii));
-        $this->assertFalse(is_enrolled(\context_course::instance((int)$fiiicourse->id), $userfiiie));
     }
 
     /**

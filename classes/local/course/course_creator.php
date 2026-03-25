@@ -61,7 +61,6 @@ final class course_creator {
         $data = $this->build_course_data_from_template($templatecourse);
 
         $year = (int)$identifications['year'];
-        // Convert 2-digit year to 4-digit year (e.g., 25 -> 2025)
         if ($year > 0 && $year < 100) {
             $year = 2000 + $year;
         }

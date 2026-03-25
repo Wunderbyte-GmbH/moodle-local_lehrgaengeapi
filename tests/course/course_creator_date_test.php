@@ -41,7 +41,6 @@ use local_lehrgaengeapi\local\users\users_creator;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class course_creator_date_test extends \advanced_testcase {
-
     /**
      * A 2-digit year like "26" is stored as a full 4-digit year (2026) in startdate/enddate.
      *
@@ -57,8 +56,8 @@ final class course_creator_date_test extends \advanced_testcase {
         $this->resetAfterTest(true);
         set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
 
-        $currentyearshort = date('y');          // e.g. "26"
-        $currentyearfull  = (int)date('Y');     // e.g. 2026
+        $currentyearshort = date('y');
+        $currentyearfull  = (int)date('Y');
 
         $endpoint = $this->fake_endpoint([
             [
@@ -101,7 +100,7 @@ final class course_creator_date_test extends \advanced_testcase {
         $expectedend   = make_timestamp($currentyearfull, 12, 31, 23, 59, 59);
 
         $this->assertSame($expectedstart, (int)$course->startdate, 'startdate should use 4-digit year');
-        $this->assertSame($expectedend,   (int)$course->enddate,   'enddate should use 4-digit year');
+        $this->assertSame($expectedend, (int)$course->enddate, 'enddate should use 4-digit year');
     }
 
     /**
@@ -218,12 +217,22 @@ final class course_creator_date_test extends \advanced_testcase {
                 $this->items = $items;
             }
 
-            /** @inheritDoc */
+            /**
+             * Return all preset Lehrgaenge.
+             *
+             * @param mixed $searchcriteria Optional filter criteria.
+             * @return array
+             */
             public function list($searchcriteria = null): array {
                 return $this->items;
             }
 
-            /** @inheritDoc */
+            /**
+             * Return one preset Lehrgang by ID.
+             *
+             * @param string $id
+             * @return array
+             */
             public function get_by_id(string $id): array {
                 foreach ($this->items as $item) {
                     if (($item['id'] ?? '') === $id) {
@@ -233,12 +242,23 @@ final class course_creator_date_test extends \advanced_testcase {
                 return [];
             }
 
-            /** @inheritDoc */
+            /**
+             * Return an empty participant list.
+             *
+             * @param string $lehrgangid
+             * @return array
+             */
             public function participants(string $lehrgangid): array {
                 return [];
             }
 
-            /** @inheritDoc */
+            /**
+             * Return empty external participant details.
+             *
+             * @param string $id
+             * @param string $teilnehmerid
+             * @return array
+             */
             public function participant_extern(string $id, string $teilnehmerid): array {
                 return [];
             }

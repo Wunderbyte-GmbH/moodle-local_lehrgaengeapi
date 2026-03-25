@@ -32,7 +32,6 @@ namespace local_lehrgaengeapi\task;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class copy_course_content_task_test extends \advanced_testcase {
-
     /**
      * Task copies modules from the template course into the target course.
      *

@@ -24,13 +24,10 @@
 
 namespace local_lehrgaengeapi\task;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Copies all activities/sections from a template course into a new course via backup/restore.
  */
 class copy_course_content_task extends \core\task\adhoc_task {
-
     /**
      * Execute the adhoc task.
      */
@@ -85,10 +82,13 @@ class copy_course_content_task extends \core\task\adhoc_task {
             $rc->execute_plan();
         } else {
             $results = $rc->get_precheck_results();
-            mtrace("copy_course_content_task: precheck failed for course $newcourseid: " . print_r($results, true));
+            $resultsjson = json_encode($results);
+            if ($resultsjson === false) {
+                $resultsjson = 'Unable to encode precheck results';
+            }
+            mtrace("copy_course_content_task: precheck failed for course $newcourseid: " . $resultsjson);
         }
         $rc->destroy();
-
         mtrace("copy_course_content_task: finished copying content from course $templatecourseid to $newcourseid");
     }
 
