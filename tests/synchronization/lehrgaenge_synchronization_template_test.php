@@ -196,7 +196,8 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
 
             /**
              * Get list of courses.
-             * @param array $searchcriteria Ignored.
+             * @param mixed $tenant Ignored.
+             * @param mixed $searchcriteria Ignored.
              * @return array
              */
             public function list($tenant, $searchcriteria = null): array {
@@ -205,6 +206,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
 
             /**
              * Get by id.
+             * @param mixed $tenant Ignored.
              * @param string $id
              * @return array
              */
@@ -214,6 +216,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
 
             /**
              * Get participants for a given id.
+             * @param mixed $tenant Ignored.
              * @param string $id
              * @return array
              */
@@ -223,6 +226,7 @@ final class lehrgaenge_synchronization_template_test extends \advanced_testcase 
 
             /**
              * Get participant_extern for a given id.
+             * @param mixed $tenant Ignored.
              * @param string $id
              * @param string $teilnehmerid
              * @return array

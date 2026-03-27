@@ -136,7 +136,7 @@ final class api_client {
         $headers = $this->parse_response_headers((string)$rawresponse);
 
         if ($status >= 200 && $status < 300) {
-           return new api_response($status, (string)$body, $headers);
+            return new api_response($status, (string)$body, $headers);
         }
 
         // For HTTP 0 (no response), include the cURL error for a more actionable message.

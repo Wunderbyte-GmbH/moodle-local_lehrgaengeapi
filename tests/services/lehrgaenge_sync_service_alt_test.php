@@ -232,7 +232,8 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
             /**
              * Return fixed data.
              *
-             * @param array $searchcriteria Ignored.
+             * @param mixed $tenant Ignored.
+             * @param mixed $searchcriteria Ignored.
              * @return array
              */
             public function list($tenant, $searchcriteria = null): array {
@@ -242,6 +243,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
             /**
              * Not used by these tests.
              *
+             * @param mixed $tenant Ignored.
              * @param string $id Lehrgang ID.
              * @return array
              */
@@ -252,6 +254,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
             /**
              * Not used by these tests.
              *
+             * @param mixed $tenant Ignored.
              * @param string $id Lehrgang ID.
              * @return array
              */
@@ -262,6 +265,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
             /**
              * Not used by these tests.
              *
+             * @param mixed $tenant Ignored.
              * @param string $id Lehrgang ID.
              * @param string $teilnehmerid Participant ID.
              * @return array

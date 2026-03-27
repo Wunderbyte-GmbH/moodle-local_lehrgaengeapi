@@ -38,6 +38,8 @@ $string['intervallehrgaenge'] = 'Sync interval: Lehrgänge list (seconds)';
 $string['intervallehrgaengedesc'] = 'How often the scheduled task should sync the Lehrgänge list.';
 $string['intervalteilnehmer'] = 'Sync interval: Teilnehmer (seconds)';
 $string['intervalteilnehmerdesc'] = 'How often the scheduled task should sync Teilnehmer for Lehrgänge.';
+$string['keyfile'] = 'Client key filename';
+$string['keyfiledesc'] = 'Filename of the client key for this tenant. Moodle checks whether the file exists under the configured certificate path.';
 $string['pluginname'] = 'Lehrgaenge API';
 $string['requestdelayms'] = 'Request delay between participant calls (ms)';
 $string['requestdelaymsdesc'] = 'Milliseconds to wait before each /teilnehmer API request. Increase this value if the external API returns HTTP 429 (rate limited). Default: 500 ms.';
@@ -49,8 +51,6 @@ $string['tenantdescription'] = 'For each tenant you can specify a custom API tok
 $string['tenantheading'] = 'Tenant settings';
 $string['timeout'] = 'Request timeout (seconds)';
 $string['timeoutdesc'] = 'HTTP request timeout in seconds for external API calls.';
-$string['keyfile'] = 'Client key filename';
-$string['keyfiledesc'] = 'Filename of the client key for this tenant. Moodle checks whether the file exists under the configured certificate path.';
 $string['token'] = 'API token';
 $string['tokendesc'] = 'Token used to authenticate against the external API. Stored in Moodle config.';
 

@@ -220,6 +220,7 @@ final class course_creator_date_test extends \advanced_testcase {
             /**
              * Return all preset Lehrgaenge.
              *
+             * @param mixed $tenant Ignored.
              * @param mixed $searchcriteria Optional filter criteria.
              * @return array
              */
@@ -230,6 +231,7 @@ final class course_creator_date_test extends \advanced_testcase {
             /**
              * Return one preset Lehrgang by ID.
              *
+             * @param mixed $tenant Ignored.
              * @param string $id
              * @return array
              */
@@ -245,6 +247,7 @@ final class course_creator_date_test extends \advanced_testcase {
             /**
              * Return an empty participant list.
              *
+             * @param mixed $tenant Ignored.
              * @param string $lehrgangid
              * @return array
              */
@@ -255,6 +258,7 @@ final class course_creator_date_test extends \advanced_testcase {
             /**
              * Return empty external participant details.
              *
+             * @param mixed $tenant Ignored.
              * @param string $id
              * @param string $teilnehmerid
              * @return array
