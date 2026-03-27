@@ -104,6 +104,7 @@ final class api_client {
     public function get(string $path, array $tenant, array $query = []): api_response {
         $url = $this->build_url($path, $query);
 
+        $certificationpath = get_config('local_lehrgaengeapi', 'certificationpath');
         $clientcert = $tenant['certificate'] ?? '';
         $clientkey  = $tenant['key'] ?? '';
 
@@ -112,8 +113,8 @@ final class api_client {
         ];
 
         if (!empty($clientcert) && !empty($clientkey)) {
-            $options['CURLOPT_SSLCERT'] = $clientcert;
-            $options['CURLOPT_SSLKEY']  = $clientkey;
+            $options['CURLOPT_SSLCERT'] = $certificationpath . $clientcert;
+            $options['CURLOPT_SSLKEY']  = $certificationpath . $clientkey;
         }
 
         $this->curl->setHeader('Accept: application/json');
