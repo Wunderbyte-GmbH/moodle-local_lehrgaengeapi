@@ -86,6 +86,17 @@ final class users_creator {
                 continue;
             }
 
+            $u = $DB->get_record('user', [
+                'mnethostid' => (int)$CFG->mnet_localhost_id,
+                'username' => $initialid,
+                'deleted' => 0,
+            ], '*', IGNORE_MISSING);
+            if ($u) {
+                $this->usermap->set_userid($initialid, (int)$u->id);
+                $existing++;
+                continue;
+            }
+
             $email = $this->pick_email($p);
             $firstname = trim((string)($p['vorname'] ?? ''));
             $lastname  = trim((string)($p['nachname'] ?? ''));
@@ -114,12 +125,27 @@ final class users_creator {
                 'country'    => 'DE',
             ];
 
-            $userid = user_create_user($newuser, false, false);
+            try {
+                $userid = user_create_user($newuser, false, false);
+                // Persist mapping.
+                $this->usermap->set_userid($initialid, (int)$userid);
+                $created++;
+            } catch (\dml_write_exception $e) {
+                // Another process may have inserted the same username concurrently.
+                $u = $DB->get_record('user', [
+                    'mnethostid' => (int)$CFG->mnet_localhost_id,
+                    'username' => $username,
+                    'deleted' => 0,
+                ], '*', IGNORE_MISSING);
 
-            // Persist mapping.
-            $this->usermap->set_userid($initialid, (int)$userid);
+                if ($u) {
+                    $this->usermap->set_userid($initialid, (int)$u->id);
+                    $existing++;
+                    continue;
+                }
 
-            $created++;
+                throw $e;
+            }
         }
 
         return [
