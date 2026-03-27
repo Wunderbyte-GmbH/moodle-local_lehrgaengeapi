@@ -60,7 +60,7 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
 
         $endpoint = new lehrgaenge_endpoint($client);
 
-        $data = $endpoint->list();
+        $data = $endpoint->list([]);
 
         $this->assertSame([['id' => '1'], ['id' => '2']], $data);
         $this->assertStringContainsString('/lehrgaenge', $fake->lasturl);
@@ -84,7 +84,7 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
 
         $endpoint = new lehrgaenge_endpoint($client);
 
-        $endpoint->list(['beschreibung' => 'Atemschutz', 'versteckeGeschlosseneLehrgaenge' => true]);
+        $endpoint->list([], ['beschreibung' => 'Atemschutz', 'versteckeGeschlosseneLehrgaenge' => true]);
 
         $this->assertStringContainsString('/lehrgaenge?', $fake->lasturl);
         $this->assertStringContainsString('searchCriteria=', $fake->lasturl);
@@ -114,7 +114,7 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
 
         $endpoint = new lehrgaenge_endpoint($client);
 
-        $data = $endpoint->get_by_id('abc');
+        $data = $endpoint->get_by_id([], 'abc');
 
         $this->assertSame(['id' => 'abc'], $data);
         $this->assertStringContainsString('/lehrgaenge/abc', $fake->lasturl);
@@ -138,7 +138,7 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
 
         $endpoint = new lehrgaenge_endpoint($client);
 
-        $data = $endpoint->participants('xyz');
+        $data = $endpoint->participants([], 'xyz');
 
         $this->assertSame([['id' => 'p1']], $data);
         $this->assertStringContainsString('/lehrgaenge/xyz/teilnehmer', $fake->lasturl);

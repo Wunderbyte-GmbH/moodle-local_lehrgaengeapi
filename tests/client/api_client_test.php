@@ -58,7 +58,7 @@ final class api_client_test extends \advanced_testcase {
             $fake
         );
 
-        $resp = $client->get('/lehrgaenge');
+        $resp = $client->get('/lehrgaenge', []);
 
         $this->assertSame(200, $resp->status);
         $this->assertSame(['ok' => true], $resp->json_array());
@@ -85,7 +85,7 @@ final class api_client_test extends \advanced_testcase {
         );
 
         $this->expectException(api_unauthorized_exception::class);
-        $client->get('/lehrgaenge');
+        $client->get('/lehrgaenge', []);
     }
 
     /**
@@ -104,7 +104,7 @@ final class api_client_test extends \advanced_testcase {
             $fake
         );
         try {
-            $client->get('/lehrgaenge');
+            $client->get('/lehrgaenge', []);
             $this->fail('Expected api_rate_limited_exception not thrown.');
         } catch (api_rate_limited_exception $e) {
             $this->assertSame(429, $e->get_http_status());

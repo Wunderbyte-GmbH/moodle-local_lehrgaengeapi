@@ -80,6 +80,13 @@ if ($hassiteconfig) {
             PARAM_INT
         ));
 
+        $settings->add(new admin_setting_configdirectory(
+            $componentname . '/certificationpath',
+            get_string('certificationpath', $componentname),
+            get_string('certificationpathdesc', $componentname),
+            ''
+        ));
+
         global $DB;
         $courses = $DB->get_records('course', null, 'fullname ASC', 'id, fullname, shortname');
 
@@ -122,6 +129,20 @@ if ($hassiteconfig) {
                 get_string('apikeydesc', $componentname),
                 '',
                 PARAM_TEXT
+            ));
+
+            $settings->add(new admin_setting_configtext(
+                $componentname . '/certificate_' . $abbrclean,
+                get_string('certificatefile', $componentname),
+                get_string('certificatefiledesc', $componentname),
+                ''
+            ));
+
+            $settings->add(new admin_setting_configtext(
+                $componentname . '/key_' . $abbrclean,
+                get_string('keyfile', $componentname),
+                get_string('keyfiledesc', $componentname),
+                ''
             ));
         }
     }

@@ -235,7 +235,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
              * @param array $searchcriteria Ignored.
              * @return array
              */
-            public function list($searchcriteria = null): array {
+            public function list($tenant, $searchcriteria = null): array {
                 return $this->items;
             }
 
@@ -245,7 +245,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
              * @param string $id Lehrgang ID.
              * @return array
              */
-            public function get_by_id(string $id): array {
+            public function get_by_id($tenant, string $id): array {
                 return [];
             }
 
@@ -255,7 +255,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
              * @param string $id Lehrgang ID.
              * @return array
              */
-            public function participants(string $id): array {
+            public function participants($tenant, string $id): array {
                 return $this->participantsbyid[$id] ?? [];
             }
 
@@ -266,7 +266,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
              * @param string $teilnehmerid Participant ID.
              * @return array
              */
-            public function participant_extern(string $id, string $teilnehmerid): array {
+            public function participant_extern($tenant, string $id, string $teilnehmerid): array {
                 return [];
             }
         };

@@ -223,7 +223,7 @@ final class course_creator_date_test extends \advanced_testcase {
              * @param mixed $searchcriteria Optional filter criteria.
              * @return array
              */
-            public function list($searchcriteria = null): array {
+            public function list($tenant, $searchcriteria = null): array {
                 return $this->items;
             }
 
@@ -233,7 +233,7 @@ final class course_creator_date_test extends \advanced_testcase {
              * @param string $id
              * @return array
              */
-            public function get_by_id(string $id): array {
+            public function get_by_id($tenant, string $id): array {
                 foreach ($this->items as $item) {
                     if (($item['id'] ?? '') === $id) {
                         return $item;
@@ -248,7 +248,7 @@ final class course_creator_date_test extends \advanced_testcase {
              * @param string $lehrgangid
              * @return array
              */
-            public function participants(string $lehrgangid): array {
+            public function participants($tenant, string $lehrgangid): array {
                 return [];
             }
 
@@ -259,7 +259,7 @@ final class course_creator_date_test extends \advanced_testcase {
              * @param string $teilnehmerid
              * @return array
              */
-            public function participant_extern(string $id, string $teilnehmerid): array {
+            public function participant_extern($tenant, string $id, string $teilnehmerid): array {
                 return [];
             }
         };

@@ -70,20 +70,19 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
      * - null (no filter)
      *
      * @param array<string,mixed>|string|null $searchcriteria Search criteria as array or pre-encoded string.
+     * @param array $tenant Tenant information.
      * @return array<mixed> List of Lehrgang objects (decoded).
      * @throws api_exception
      * @throws \JsonException
      */
-    public function list($searchcriteria = null): array {
+    public function list($tenant, $searchcriteria = null): array {
         $query = [];
-
         if (is_array($searchcriteria)) {
             $query['searchCriteria'] = json_encode($searchcriteria, JSON_THROW_ON_ERROR);
         } else if (is_string($searchcriteria) && $searchcriteria !== '') {
             $query['searchCriteria'] = $searchcriteria;
         }
-
-        $response = $this->client->get('/lehrgaenge', $query);
+        $response = $this->client->get('/lehrgaenge', $tenant, $query);
         return $response->json_array();
     }
 
@@ -92,13 +91,14 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
      *
      * OpenAPI: GET /lehrgaenge/{id}
      *
+     * @param array $tenant Tenant information.
      * @param string $id Lehrgang ID.
      * @return array<string,mixed> Lehrgang object (decoded).
      * @throws api_exception
      * @throws \JsonException
      */
-    public function get_by_id(string $id): array {
-        $response = $this->client->get('/lehrgaenge/' . rawurlencode($id));
+    public function get_by_id($tenant, string $id): array {
+        $response = $this->client->get('/lehrgaenge/' . rawurlencode($id), $tenant);
         $data = $response->json_array();
         return is_array($data) ? $data : [];
     }
@@ -108,13 +108,14 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
      *
      * OpenAPI: GET /lehrgaenge/{id}/teilnehmer
      *
+     * @param array $tenant Tenant information.
      * @param string $id Lehrgang ID.
      * @return array<mixed> List of LehrgangTeilnehmer objects (decoded).
      * @throws api_exception
      * @throws \JsonException
      */
-    public function participants(string $id): array {
-        $response = $this->client->get('/lehrgaenge/' . rawurlencode($id) . '/teilnehmer');
+    public function participants($tenant, string $id): array {
+        $response = $this->client->get('/lehrgaenge/' . rawurlencode($id) . '/teilnehmer', $tenant);
         return $response->json_array();
     }
 
@@ -123,15 +124,16 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
      *
      * OpenAPI: GET /lehrgaenge/{id}/teilnehmer-extern/{teilnehmerId}
      *
+     * @param array $tenant Tenant information.
      * @param string $id Lehrgang ID.
      * @param string $teilnehmerid Participant ID.
      * @return array<string,mixed> LehrgangTeilnehmer object (decoded).
      * @throws api_exception
      * @throws \JsonException
      */
-    public function participant_extern(string $id, string $teilnehmerid): array {
+    public function participant_extern($tenant, string $id, string $teilnehmerid): array {
         $path = '/lehrgaenge/' . rawurlencode($id) . '/teilnehmer-extern/' . rawurlencode($teilnehmerid);
-        $response = $this->client->get($path);
+        $response = $this->client->get($path, $tenant);
         $data = $response->json_array();
         return is_array($data) ? $data : [];
     }

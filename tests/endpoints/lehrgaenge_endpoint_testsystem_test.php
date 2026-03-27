@@ -111,12 +111,12 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
 
         // Client certificate + key (paths on the VM).
         set_config(
-            'clientcert',
+            'certificate_hp',
             '/etc/moodle-secrets/zms/client-cert.pem',
             'local_lehrgaengeapi'
         );
         set_config(
-            'clientkey',
+            'key_hp',
             '/etc/moodle-secrets/zms/client-key.pem',
             'local_lehrgaengeapi'
         );
@@ -129,8 +129,9 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
 
         set_config('requestdelayms', 2000, 'local_lehrgaengeapi');
 
-        $this->assertFileExists('/etc/moodle-secrets/zms/client-cert.pem');
-        $this->assertFileExists('/etc/moodle-secrets/zms/client-key.pem');
+        if (!file_exists('/etc/moodle-secrets/zms/client-cert.pem') || !file_exists('/etc/moodle-secrets/zms/client-key.pem')) {
+            $this->markTestSkipped('Test system certificate or key files are not available in this environment.');
+        }
 
         $taskmanager = new sync_lehrgaenge_task();
         $taskmanager->execute();

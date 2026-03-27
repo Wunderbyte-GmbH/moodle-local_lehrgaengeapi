@@ -39,41 +39,45 @@ interface lehrgaenge_endpoint_interface {
     /**
      * Receive all courses assigned to the respective organisation.
      *
+     * @param array $tenant Tenant information.
      * @param array<string,mixed>|string|null $searchcriteria Search criteria as array or pre-encoded string.
      * @return array<mixed>
      * @throws api_exception
      * @throws \JsonException
      */
-    public function list($searchcriteria = null): array;
+    public function list($tenant, $searchcriteria = null): array;
 
     /**
      * Receive a course by id.
      *
+     * @param array $tenant Tenant information.
      * @param string $id Lehrgang ID.
      * @return array<string,mixed>
      * @throws api_exception
      * @throws \JsonException
      */
-    public function get_by_id(string $id): array;
+    public function get_by_id($tenant, string $id): array;
 
     /**
      * Receive all participants of a course.
      *
+     * @param array $tenant Tenant information.
      * @param string $id Lehrgang ID.
      * @return array<mixed>
      * @throws api_exception
      * @throws \JsonException
      */
-    public function participants(string $id): array;
+    public function participants($tenant, string $id): array;
 
     /**
      * Receive a participant of a course (external participant endpoint).
      *
+     * @param array $tenant Tenant information.
      * @param string $id Lehrgang ID.
      * @param string $teilnehmerid Participant ID.
      * @return array<string,mixed>
      * @throws api_exception
      * @throws \JsonException
      */
-    public function participant_extern(string $id, string $teilnehmerid): array;
+    public function participant_extern($tenant, string $id, string $teilnehmerid): array;
 }

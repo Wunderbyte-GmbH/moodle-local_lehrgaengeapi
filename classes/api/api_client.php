@@ -96,16 +96,16 @@ final class api_client {
      * Perform a GET request.
      *
      * @param string $path Relative path like '/lehrgaenge'.
+     * @param array $tenant Tenant information.
      * @param array $query Query params (null values are ignored).
      * @return api_response
      * @throws api_exception
      */
-    public function get(string $path, array $query = []): api_response {
+    public function get(string $path, array $tenant, array $query = []): api_response {
         $url = $this->build_url($path, $query);
 
-        $cfg = get_config('local_lehrgaengeapi');
-        $clientcert = $cfg->clientcert ?? '';
-        $clientkey  = $cfg->clientkey ?? '';
+        $clientcert = $tenant['certificate'] ?? '';
+        $clientkey  = $tenant['key'] ?? '';
 
         $options = [
             'CURLOPT_TIMEOUT' => $this->timeoutseconds,
@@ -135,7 +135,7 @@ final class api_client {
         $headers = $this->parse_response_headers((string)$rawresponse);
 
         if ($status >= 200 && $status < 300) {
-            return new api_response($status, (string)$body, $headers);
+           return new api_response($status, (string)$body, $headers);
         }
 
         // For HTTP 0 (no response), include the cURL error for a more actionable message.

@@ -27,6 +27,17 @@ use core_text;
  */
 class tenants {
     /**
+     * Returns a tenant abbreviation in config-safe format.
+     *
+     * @param string $abbr The abbreviation of the tenant.
+     * @return string
+     */
+    protected static function normalise_abbr(string $abbr): string {
+        $abbrclean = core_text::strtolower($abbr);
+        return preg_replace('/[^a-z0-9_]/', '_', $abbrclean);
+    }
+
+    /**
      * Returns a list of all tenants.
      * @return array An array of tenants, each tenant is an associative array with 'name' and 'abbr' keys.
      */
@@ -76,9 +87,27 @@ class tenants {
      * @return array|null The tenant with 'name' and 'abbr' keys, or null if not found.
      */
     public static function get_config_key(string $abbr): string {
-        $abbrclean = core_text::strtolower($abbr);
-        $abbrclean = preg_replace('/[^a-z0-9_]/', '_', $abbrclean);
-        return 'apikey_' . $abbrclean;
+        return 'apikey_' . self::normalise_abbr($abbr);
+    }
+
+    /**
+     * Returns the config key for the client certificate path of a tenant.
+     *
+     * @param string $abbr The abbreviation of the tenant.
+     * @return string
+     */
+    public static function get_certificate_config_key(string $abbr): string {
+        return 'certificate_' . self::normalise_abbr($abbr);
+    }
+
+    /**
+     * Returns the config key for the client key path of a tenant.
+     *
+     * @param string $abbr The abbreviation of the tenant.
+     * @return string
+     */
+    public static function get_key_config_key(string $abbr): string {
+        return 'key_' . self::normalise_abbr($abbr);
     }
 
     /**
@@ -92,9 +121,13 @@ class tenants {
         foreach (self::all() as $mandant) {
             $configkey = self::get_config_key($mandant['abbr']);
             if (isset($config->{$configkey})) {
+                $certificateconfigkey = self::get_certificate_config_key($mandant['abbr']);
+                $keyconfigkey = self::get_key_config_key($mandant['abbr']);
                 $result[] = [
                     'name' => $mandant['name'],
                     'abbr' => $mandant['abbr'],
+                    'certificate' => $config->{$certificateconfigkey} ?? null,
+                    'key' => $config->{$keyconfigkey} ?? null,
                     'configkey' => $configkey,
                     'apikey' => $config->{$configkey},
                 ];
