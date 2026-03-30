@@ -53,4 +53,3 @@ $string['timeout'] = 'Request timeout (seconds)';
 $string['timeoutdesc'] = 'HTTP request timeout in seconds for external API calls.';
 $string['token'] = 'API token';
 $string['tokendesc'] = 'Token used to authenticate against the external API. Stored in Moodle config.';
-

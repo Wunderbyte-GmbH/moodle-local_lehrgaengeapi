@@ -70,7 +70,7 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
      * - null (no filter)
      *
      * @param array $tenant Tenant information.
-    * @param array<string,mixed>|string|null $searchcriteria Search criteria as array or pre-encoded string.
+     * @param array<string,mixed>|string|null $searchcriteria Search criteria as array or pre-encoded string.
      * @return array<mixed> List of Lehrgang objects (decoded).
      * @throws api_exception
      * @throws \JsonException
