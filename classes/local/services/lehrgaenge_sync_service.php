@@ -63,8 +63,8 @@ final class lehrgaenge_sync_service {
         'F-Ma' => 'F-MA',
         'F/K-Sprechfunk' => 'F/K-SPF',
         'F-TH-VU' => 'F-TH-VU',
-        'F/B-mobBSA-Hesser' => 'F-BSA',
-        'F/B-BSA-Sem.' => 'F-BSA',
+        'F/B-mobBSA-Hessen' => 'F-BSA',
+        'F/B-BSA-Sem.' => 'F/B-BSA-Sem.',
         'F-III' => 'F-III-elearn',
     ];
 
