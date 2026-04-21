@@ -113,13 +113,23 @@ final class lehrgaenge_sync_service {
         $created = 0;
         $skipped = 0;
 
+        $hlfscompany = $this->get_main_company();
         $company = $this->tenantcreator->get_tenant($tenant);
 
         $userreport = [];
         foreach ($items as $item) {
             if (
+                $item['ort'] !== '' &&
+                strpos($item['ort'] , 'HLFS') === 0 &&
+                $hlfscompany
+            ) {
+                $currentcompany = $hlfscompany;
+            } else {
+                $currentcompany = $company;
+            }
+            if (
                 !is_array($item) ||
-                !$company
+                !$currentcompany
             ) {
                 $skipped++;
                 continue;
@@ -132,7 +142,7 @@ final class lehrgaenge_sync_service {
             }
 
             // Check if course exists by naming convention (current or CURRENTYEAR_alt).
-            $identifications = $this->set_course_identifications($item, $company);
+            $identifications = $this->set_course_identifications($item, $currentcompany);
             $shortname = implode('-', $identifications);
             $existing = $DB->get_record('course', ['shortname' => $shortname], '*', IGNORE_MISSING);
 
@@ -155,12 +165,12 @@ final class lehrgaenge_sync_service {
                 continue;
             }
 
-            $course = $this->coursecreator->create($company, $item, $identifications);
+            $course = $this->coursecreator->create($currentcompany, $item, $identifications);
             if (!$course) {
                 $skipped++;
                 continue;
             }
-            $company->add_course($course);
+            $currentcompany->add_course($course);
             $userreport[$course->id] = $this->participantssync->sync_for_course(
                 $externalid,
                 (int)$course->id,
@@ -193,6 +203,19 @@ final class lehrgaenge_sync_service {
             'coursename' => $coursename,
             'year' => substr($item['endTag'], 2, 2),
         ];
+    }
+
+    /**
+     * Get the main company in order to assign people to main courses.
+     *
+     * @return company|null
+     */
+    private function get_main_company(): company|null {
+        $tenant = [
+            'name' => 'Hessische Landesfeuerwehrschule',
+            'abbr' => 'HLFS',
+        ];
+        return $this->tenantcreator->get_tenant($tenant);
     }
 
     /**
