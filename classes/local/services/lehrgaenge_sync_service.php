@@ -120,7 +120,7 @@ final class lehrgaenge_sync_service {
         foreach ($items as $item) {
             if (
                 $item['ort'] !== '' &&
-                strpos($item['ort'] , 'HLFS') === 0 &&
+                strpos($item['ort'], 'HLFS') === 0 &&
                 $hlfscompany
             ) {
                 $currentcompany = $hlfscompany;
