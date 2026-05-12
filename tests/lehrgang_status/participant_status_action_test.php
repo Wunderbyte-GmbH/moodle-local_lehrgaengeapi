@@ -40,6 +40,7 @@ final class participant_status_action_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_unassign
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_complete
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_not_do_anything
+     * Testing only assignment action flags are set for assign_only action.
      */
     public function test_assign_only_action_flags(): void {
         $action = participant_status_action::assign_only();
@@ -55,6 +56,7 @@ final class participant_status_action_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_assign
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_unassign
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_complete
+     * Testing only unassignment action flags are set for unassign_only action.
      */
     public function test_unassign_only_action_flags(): void {
         $action = participant_status_action::unassign_only();
@@ -68,6 +70,7 @@ final class participant_status_action_test extends \advanced_testcase {
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::assign_and_complete
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_assign
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_complete
+     * Testing both assignment and completion action flags are set for assign_and_complete action.
      */
     public function test_assign_and_complete_action_flags(): void {
         $action = participant_status_action::assign_and_complete();
@@ -79,6 +82,7 @@ final class participant_status_action_test extends \advanced_testcase {
     /**
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::noop
      * @covers \local_lehrgaengeapi\local\lehrgang_status\participant_status_action::should_not_do_anything
+     * Testing that no action flags are set for noop action, and should_not_do_anything returns true.
      */
     public function test_noop_action_flags(): void {
         $action = participant_status_action::noop();

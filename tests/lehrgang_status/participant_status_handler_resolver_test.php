@@ -15,14 +15,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tests for coursemap_repository.
+ * Tests for participant_status_handler_resolver.
  *
  * @package   local_lehrgaengeapi
  * @copyright 2026 Wunderbyte GmbH
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lehrgaengeapi\repositories;
+namespace local_lehrgaengeapi\lehrgang_status;
 
 use local_lehrgaengeapi\local\lehrgang_status\abgemeldet_participant_status_handler;
 use local_lehrgaengeapi\local\lehrgang_status\angemeldet_participant_status_handler;
@@ -31,7 +31,7 @@ use local_lehrgaengeapi\local\lehrgang_status\noop_participant_status_handler;
 use local_lehrgaengeapi\local\lehrgang_status\participant_status_handler_resolver;
 
 /**
- * Tests for coursemap_repository.
+ * Tests for participant_status_handler_resolver.
  *
  * @package   local_lehrgaengeapi
  * @copyright 2026 Wunderbyte GmbH

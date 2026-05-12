@@ -50,6 +50,9 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
             $this->markTestSkipped('IOMAD not available');
         }
 
+        // Increase API timeout for slow external test system responses.
+        set_config('timeout', 120, 'local_lehrgaengeapi');
+
         $this->resetAfterTest(true);
 
         require_once($CFG->dirroot . '/course/lib.php');
@@ -73,8 +76,40 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
         require_once($CFG->dirroot . '/local/iomad/lib/company.php');
 
         $companyrecord = (object)[
-            'name'                   => 'Landkreis Bergstraße',
-            'shortname'              => 'HP',
+            'name'                   => 'Fulda',
+            'shortname'              => 'fd',
+            'code'                   => 'FD',
+            'city'                   => 'Test',
+            'country'                => 'DE',
+            'maildisplay'            => 2,
+            'mailformat'             => 1,
+            'maildigest'             => 0,
+            'autosubscribe'          => 1,
+            'trackforums'            => 0,
+            'htmleditor'             => 1,
+            'screenreader'           => 0,
+            'timezone'               => '99',
+            'lang'                   => 'de',
+            'theme'                  => 'iomadboost',
+            'category'               => $categoryid,
+            'profileid'              => 0,
+            'suspended'              => 0,
+            'supervisorprofileid'    => 0,
+            'managernotify'          => 0,
+            'parentid'               => 0,
+            'ecommerce'              => 0,
+            'managerdigestday'       => 0,
+            'previousroletemplateid' => 0,
+            'previousemailtemplateid' => 0,
+            'departmentprofileid'    => 0,
+        ];
+        $companyid = $DB->insert_record('company', $companyrecord);
+        \company::initialise_departments($companyid);
+
+        $companyrecord = (object)[
+            'name'                   => 'Hessische Landesfeuerwehrschule',
+            'shortname'              => 'hlfs',
+            'code'                   => 'HLFS',
             'city'                   => 'Test',
             'country'                => 'DE',
             'maildisplay'            => 2,
@@ -105,25 +140,25 @@ final class lehrgaenge_endpoint_testsystem_test extends \advanced_testcase {
         // Base URL.
         set_config(
             'baseurl',
-            'https://zms-hlfs.de/fw-hessen-schule/rest/services/moodle-services',
+            'https://zms-hessen.org/spielversion/rest/services/moodle-services',
             'local_lehrgaengeapi'
         );
 
         // Client certificate + key (paths on the VM).
         set_config(
-            'certificate_hp',
+            'certificate_fd',
             '/etc/moodle-secrets/zms/client-cert.pem',
             'local_lehrgaengeapi'
         );
         set_config(
-            'key_hp',
+            'key_fd',
             '/etc/moodle-secrets/zms/client-key.pem',
             'local_lehrgaengeapi'
         );
 
         set_config(
-            'apikey_hp',
-            'YQtETIwanceHu1tHtgI1oEcxaGo5t3aasZttsi48Utpzz0NpyDot8ULDnMwiITdHmVOi4f4n',
+            'apikey_fd',
+            'd1SqBF5wo757gxQtIidp1WBrLB5jsiHxLLhWp85q1ihLCilhxQVfFK70fr5IUpnD5Cbg4q3S',
             'local_lehrgaengeapi'
         );
 

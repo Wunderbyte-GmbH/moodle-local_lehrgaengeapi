@@ -239,7 +239,6 @@ final class participant_course_assigner {
             }
         } else if ($action->should_unassign()) {
             if ($this->plugin && $this->manualinstance) {
-
                 $userenrolment = $DB->get_record('user_enrolments', [
                     'enrolid' => $this->manualinstance->id,
                     'userid' => $userid,
