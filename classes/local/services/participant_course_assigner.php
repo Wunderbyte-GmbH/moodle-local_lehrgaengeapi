@@ -26,6 +26,7 @@ namespace local_lehrgaengeapi\local\services;
 
 use completion_completion;
 use context_course;
+use local_lehrgaengeapi\local\lehrgang_status\abgemeldet_participant_status_handler;
 use local_lehrgaengeapi\local\repository\usermap_repository;
 use local_lehrgaengeapi\local\lehrgang_status\participant_status_handler_resolver;
 use local_lehrgaengeapi\local\lehrgang_status\angemeldet_participant_status_handler;
@@ -69,7 +70,8 @@ final class participant_course_assigner {
         $this->resolver = new participant_status_handler_resolver(
             new angemeldet_participant_status_handler(),
             new bestanden_participant_status_handler(),
-            new noop_participant_status_handler()
+            new noop_participant_status_handler(),
+            new abgemeldet_participant_status_handler()
         );
         $this->courseid = 0;
         $this->context = null;
@@ -95,6 +97,7 @@ final class participant_course_assigner {
             'skipped' => 0,
             'noop' => 0,
             'enrolled' => 0,
+            'unenrolled' => 0,
             'alreadyenrolled' => 0,
             'completed' => 0,
             'total' => $total,
@@ -214,7 +217,7 @@ final class participant_course_assigner {
         $handler = $this->resolver->resolve($status);
         $action = $handler->process();
 
-        if (!$action->should_assign() && !$action->should_complete()) {
+        if ($action->should_not_do_anything()) {
             $report['noop']++;
             return;
         }
@@ -233,6 +236,19 @@ final class participant_course_assigner {
             // If user is enrolled (already or newly), ensure group membership unless explicitly disabled.
             if ($isenrolled && !$this->skip_group_assignment()) {
                 $this->ensure_participant_group_membership($participant, $userid);
+            }
+        } else if ($action->should_unassign()) {
+            if ($this->plugin && $this->manualinstance) {
+
+                $userenrolment = $DB->get_record('user_enrolments', [
+                    'enrolid' => $this->manualinstance->id,
+                    'userid' => $userid,
+                ]);
+
+                if ($userenrolment) {
+                    $this->plugin->unenrol_user($this->manualinstance, $userid);
+                    $report['unenrolled']++;
+                }
             }
         }
 

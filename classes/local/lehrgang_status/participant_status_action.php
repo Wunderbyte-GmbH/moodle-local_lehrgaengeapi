@@ -35,18 +35,18 @@ require_once($CFG->dirroot . '/course/lib.php');
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class participant_status_action {
-    /** @var bool */
-    private bool $shouldassign;
+    /** @var int */
+    private int $shouldassign;
 
-    /** @var bool */
-    private bool $shouldcomplete;
+    /** @var int */
+    private int $shouldcomplete;
 
     /**
      * Participant_status_action constructor.
-     * @param bool $shouldassign
-     * @param bool $shouldcomplete
+     * @param int $shouldassign
+     * @param int $shouldcomplete
      */
-    public function __construct(bool $shouldassign, bool $shouldcomplete) {
+    public function __construct(int $shouldassign, int $shouldcomplete) {
         $this->shouldassign = $shouldassign;
         $this->shouldcomplete = $shouldcomplete;
     }
@@ -56,7 +56,7 @@ final class participant_status_action {
      * @return self
      */
     public static function noop(): self {
-        return new self(false, false);
+        return new self(0, 0);
     }
 
     /**
@@ -64,7 +64,15 @@ final class participant_status_action {
      * @return self
      */
     public static function assign_only(): self {
-        return new self(true, false);
+        return new self(1, 0);
+    }
+
+    /**
+     * Unassign only constructor.
+     * @return self
+     */
+    public static function unassign_only(): self {
+        return new self(-1, 0);
     }
 
     /**
@@ -72,7 +80,7 @@ final class participant_status_action {
      * @return self
      */
     public static function assign_and_complete(): self {
-        return new self(true, true);
+        return new self(1, 1);
     }
 
     /**
@@ -80,7 +88,15 @@ final class participant_status_action {
      * @return bool
      */
     public function should_assign(): bool {
-        return $this->shouldassign;
+        return $this->shouldassign > 0;
+    }
+
+    /**
+     * Unassign condition.
+     * @return bool
+     */
+    public function should_unassign(): bool {
+        return $this->shouldassign < 0;
     }
 
     /**
@@ -88,6 +104,14 @@ final class participant_status_action {
      * @return bool
      */
     public function should_complete(): bool {
-        return $this->shouldcomplete;
+        return $this->shouldcomplete > 0;
+    }
+
+    /**
+     * No operation condition.
+     * @return bool
+     */
+    public function should_not_do_anything(): bool {
+        return $this->shouldassign === 0 && $this->shouldcomplete === 0;
     }
 }

@@ -44,20 +44,26 @@ final class participant_status_handler_resolver {
     /** @var participant_status_handler_interface */
     private participant_status_handler_interface $noophandler;
 
+    /** @var participant_status_handler_interface */
+    private participant_status_handler_interface $abmeldenhandler;
+
     /**
      * Constructor.
      * @param participant_status_handler_interface $angemeldethandler
      * @param participant_status_handler_interface $bestandenhandler
      * @param participant_status_handler_interface $noophandler
+     * @param participant_status_handler_interface $abmeldenhandler
      */
     public function __construct(
         participant_status_handler_interface $angemeldethandler,
         participant_status_handler_interface $bestandenhandler,
-        participant_status_handler_interface $noophandler
+        participant_status_handler_interface $noophandler,
+        participant_status_handler_interface $abmeldenhandler
     ) {
         $this->angemeldethandler = $angemeldethandler;
         $this->bestandenhandler = $bestandenhandler;
         $this->noophandler = $noophandler;
+        $this->abmeldenhandler = $abmeldenhandler;
     }
 
     /**
@@ -74,19 +80,23 @@ final class participant_status_handler_resolver {
     public function resolve(?string $rawstatus): participant_status_handler_interface {
         $status = $this->get_main_status_identifer(strtoupper(trim((string)$rawstatus)));
 
-        if ($status === '') {
-            return $this->noophandler;
-        }
-
         if (
-            strpos($status, 'ANGEMELDET') !== false ||
+            strpos($status, 'EINBERUFUNG') !== false ||
             strpos($status, 'EINBERUFEN') !== false
         ) {
             return $this->angemeldethandler;
         }
 
-        if (strpos($status, 'BESTANDEN') !== false) {
+        if (strpos($status, 'TEILGENOMMEN') !== false) {
             return $this->bestandenhandler;
+        }
+
+        if (
+            strpos($status, 'FEHLT') !== false ||
+            strpos($status, 'STORNIERT') !== false ||
+            strpos($status, 'ABGEBROCHEN') !== false
+        ) {
+            return $this->abmeldenhandler;
         }
 
         return $this->noophandler;
