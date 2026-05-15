@@ -86,6 +86,7 @@ final class participants_sync_service {
             empty($participants)
         ) {
             return [
+                'florixid' => $externalid,
                 'users' => [
                     'created' => 0,
                     'existing' => 0,
@@ -104,6 +105,7 @@ final class participants_sync_service {
         $assignsummary = $this->assigner->assign($participants, $courseid, $course);
 
         return [
+            'florixid' => $externalid,
             'users' => $usersummary,
             'assignments' => $assignsummary,
         ];
