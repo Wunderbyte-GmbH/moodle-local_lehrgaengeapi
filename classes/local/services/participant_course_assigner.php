@@ -99,6 +99,7 @@ final class participant_course_assigner {
             'enrolled' => 0,
             'unenrolled' => 0,
             'alreadyenrolled' => 0,
+            'alreadyunenrolled' => 0,
             'completed' => 0,
             'total' => $total,
         ];
@@ -247,6 +248,8 @@ final class participant_course_assigner {
                 if ($userenrolment) {
                     $this->plugin->unenrol_user($this->manualinstance, $userid);
                     $report['unenrolled']++;
+                } else {
+                    $report['alreadyunenrolled']++;
                 }
             }
         }

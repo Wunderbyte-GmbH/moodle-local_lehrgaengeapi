@@ -115,7 +115,6 @@ final class lehrgaenge_sync_service {
 
         $hlfscompany = $this->get_main_company();
         $company = $this->tenantcreator->get_tenant($tenant);
-
         $userreport = [];
         foreach ($items as $item) {
             if (
