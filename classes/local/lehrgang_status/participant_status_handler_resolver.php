@@ -94,7 +94,8 @@ final class participant_status_handler_resolver {
         if (
             strpos($status, 'FEHLT') !== false ||
             strpos($status, 'STORNIERT') !== false ||
-            strpos($status, 'ABGEBROCHEN') !== false
+            strpos($status, 'ABGEBROCHEN') !== false ||
+            strpos($status, 'ZURUECKGESTELLT') !== false
         ) {
             return $this->abmeldenhandler;
         }
