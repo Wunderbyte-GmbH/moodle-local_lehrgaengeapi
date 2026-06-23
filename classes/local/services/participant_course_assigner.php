@@ -232,6 +232,8 @@ final class participant_course_assigner {
                 $this->plugin->enrol_user($this->manualinstance, $userid, (int)$this->manualinstance->roleid);
                 $report['enrolled']++;
                 $isenrolled = true;
+            } else {
+                $report['skipped']++;
             }
 
             // If user is enrolled (already or newly), ensure group membership unless explicitly disabled.
@@ -251,6 +253,8 @@ final class participant_course_assigner {
                 } else {
                     $report['alreadyunenrolled']++;
                 }
+            } else {
+                $report['skipped']++;
             }
         }
 
