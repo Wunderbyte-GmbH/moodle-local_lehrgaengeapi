@@ -25,6 +25,7 @@
 namespace local_lehrgaengeapi\local\users;
 
 use local_lehrgaengeapi\local\repository\usermap_repository;
+use stdClass;
 
 /**
  * Course creator wrapper.
@@ -73,6 +74,7 @@ final class users_creator {
 
             if (!empty($map->userid)) {
                 $u = $DB->get_record('user', ['id' => (int)$map->userid, 'deleted' => 0], '*', IGNORE_MISSING);
+                $this->check_and_fill_initial_id($u, $initialid);
                 if ($u) {
                     $existing++;
                     continue;
@@ -93,6 +95,7 @@ final class users_creator {
             ], '*', IGNORE_MISSING);
             if ($u) {
                 $this->usermap->set_userid($initialid, (int)$u->id);
+                $this->check_and_fill_initial_id($u, $initialid);
                 $existing++;
                 continue;
             }
@@ -116,11 +119,11 @@ final class users_creator {
                 'confirmed'  => 1,
                 'mnethostid' => $CFG->mnet_localhost_id,
                 'username'   => $username,
-                'password'   => hash_internal_user_password(random_string(20)),
+                'password'   => hash_internal_user_password($username . 'Hlfs#'),
                 'firstname'  => $firstname,
                 'lastname'   => $lastname,
                 'email'      => $email,
-                'idnumber'   => $initialid,
+                'idnumber'   => $username,
                 'city'       => (string)($p['ort'] ?? ''),
                 'country'    => 'DE',
             ];
@@ -218,5 +221,19 @@ final class users_creator {
         }
 
         return $candidate;
+    }
+
+    /**
+     * Update initial id if empty. This is used to ensure that the initial id is set for existing users.
+     *
+     * @param stdClass $user
+     * @return string
+     */
+    private function check_and_fill_initial_id(stdClass $user, string $initialid): void {
+        if (empty($user->idnumber)) {
+            global $DB;
+            $user->idnumber = $initialid;
+            $DB->update_record('user', $user);
+        }
     }
 }
