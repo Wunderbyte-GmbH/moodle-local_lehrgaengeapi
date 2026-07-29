@@ -118,6 +118,7 @@ final class lehrgaenge_sync_service {
         $userreport = [];
         foreach ($items as $item) {
             if (
+                !empty($item['ort']) &&
                 $item['ort'] !== '' &&
                 strpos($item['ort'], 'HLFS') === 0 &&
                 $hlfscompany

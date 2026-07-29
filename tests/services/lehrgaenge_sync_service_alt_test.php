@@ -70,7 +70,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
                 'initialId' => 'p-alt-100',
                 'vorname' => 'Anna',
                 'nachname' => 'Altfall',
-                'status' => 'S018_ANGEMELDET_KREIS',
+                'status' => 'S018_EINBERUFUNG_KREIS',
                 'emails' => [
                     'emailBusiness' => 'anna.altfall@example.invalid',
                 ],
@@ -82,7 +82,7 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
                 'initialId' => 'p-alt-200',
                 'vorname' => 'Bob',
                 'nachname' => 'Altvater',
-                'status' => 'S018_ANGEMELDET_KREIS',
+                'status' => 'S018_EINBERUFUNG_KREIS',
                 'emails' => [
                     'emailBusiness' => 'bob.altvater@example.invalid',
                 ],

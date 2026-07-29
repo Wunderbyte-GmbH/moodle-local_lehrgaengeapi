@@ -91,26 +91,6 @@ class tenants {
     }
 
     /**
-     * Returns the config key for the client certificate path of a tenant.
-     *
-     * @param string $abbr The abbreviation of the tenant.
-     * @return string
-     */
-    public static function get_certificate_config_key(string $abbr): string {
-        return 'certificate_' . self::normalise_abbr($abbr);
-    }
-
-    /**
-     * Returns the config key for the client key path of a tenant.
-     *
-     * @param string $abbr The abbreviation of the tenant.
-     * @return string
-     */
-    public static function get_key_config_key(string $abbr): string {
-        return 'key_' . self::normalise_abbr($abbr);
-    }
-
-    /**
      * Returns all tenants with their corresponding API keys from config.
      * @return array An array of tenants, each tenant is an associative array with 'name', 'abbr', 'configkey' and 'apikey' keys.
      */
@@ -121,13 +101,9 @@ class tenants {
         foreach (self::all() as $mandant) {
             $configkey = self::get_config_key($mandant['abbr']);
             if (isset($config->{$configkey})) {
-                $certificateconfigkey = self::get_certificate_config_key($mandant['abbr']);
-                $keyconfigkey = self::get_key_config_key($mandant['abbr']);
                 $result[] = [
                     'name' => $mandant['name'],
                     'abbr' => $mandant['abbr'],
-                    'certificate' => $config->{$certificateconfigkey} ?? null,
-                    'key' => $config->{$keyconfigkey} ?? null,
                     'configkey' => $configkey,
                     'apikey' => $config->{$configkey},
                 ];

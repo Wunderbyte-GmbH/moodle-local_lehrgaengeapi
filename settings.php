@@ -113,6 +113,20 @@ if ($hassiteconfig) {
         ));
         $tenants = tenants::all();
 
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/certificate_general',
+            get_string('certificatefile', $componentname),
+            get_string('certificatefiledesc', $componentname),
+            ''
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/key_general',
+            get_string('keyfile', $componentname),
+            get_string('keyfiledesc', $componentname),
+            ''
+        ));
+
         foreach ($tenants as $mandant) {
             $abbrclean = core_text::strtolower($mandant['abbr']);
             $abbrclean = preg_replace('/[^a-z0-9_]/', '_', $abbrclean);
@@ -129,20 +143,6 @@ if ($hassiteconfig) {
                 get_string('apikeydesc', $componentname),
                 '',
                 PARAM_TEXT
-            ));
-
-            $settings->add(new admin_setting_configtext(
-                $componentname . '/certificate_' . $abbrclean,
-                get_string('certificatefile', $componentname),
-                get_string('certificatefiledesc', $componentname),
-                ''
-            ));
-
-            $settings->add(new admin_setting_configtext(
-                $componentname . '/key_' . $abbrclean,
-                get_string('keyfile', $componentname),
-                get_string('keyfiledesc', $componentname),
-                ''
             ));
         }
     }

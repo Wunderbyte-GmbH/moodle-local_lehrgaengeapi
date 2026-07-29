@@ -105,8 +105,8 @@ final class api_client {
         $url = $this->build_url($path, $query);
 
         $certificationpath = get_config('local_lehrgaengeapi', 'certificationpath');
-        $clientcert = $tenant['certificate'] ?? '';
-        $clientkey  = $tenant['key'] ?? '';
+        $clientcert = get_config('local_lehrgaengeapi', 'certificate_general');
+        $clientkey  = get_config('local_lehrgaengeapi', 'key_general');
 
         $options = [
             'CURLOPT_TIMEOUT' => $this->timeoutseconds,
