@@ -74,8 +74,8 @@ final class users_creator {
 
             if (!empty($map->userid)) {
                 $u = $DB->get_record('user', ['id' => (int)$map->userid, 'deleted' => 0], '*', IGNORE_MISSING);
-                $this->check_and_fill_initial_id($u, $initialid);
                 if ($u) {
+                    $this->check_and_fill_initial_id($u, $initialid);
                     $existing++;
                     continue;
                 }
