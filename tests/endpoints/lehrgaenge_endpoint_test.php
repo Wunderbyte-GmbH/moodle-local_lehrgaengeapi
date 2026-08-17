@@ -92,6 +92,13 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
         $this->assertStringNotContainsString('searchCriteria=', $fake->lasturl);
         $this->assertStringContainsString('lehrgangVon=2024-01-01', $fake->lasturl);
         $this->assertStringContainsString('lehrgangBis=2024-12-31', $fake->lasturl);
+        // Regression guard: Moodle's bootstrap sets ini arg_separator.output to '&amp;'
+        // (for HTML-safe link printing), which http_build_query() silently inherits
+        // unless a separator is passed explicitly - corrupting the real outgoing query
+        // string (lehrgangBis becomes an unrecognised "amp;lehrgangBis" param for the
+        // API). Assert the two params are joined by a literal '&', not '&amp;'.
+        $this->assertStringNotContainsString('&amp;', $fake->lasturl);
+        $this->assertStringContainsString('lehrgangVon=2024-01-01&lehrgangBis=2024-12-31', $fake->lasturl);
     }
 
     /**

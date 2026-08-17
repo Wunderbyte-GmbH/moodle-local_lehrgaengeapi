@@ -106,6 +106,45 @@ if ($id) {
             echo $OUTPUT->heading(get_string('failedlehrgaenge', 'local_lehrgaengeapi'), 4);
             echo html_writer::tag('ul', implode('', $failedentries));
         }
+        $participanttable = new html_table();
+        $participanttable->attributes['class'] = 'generaltable';
+        $participanttable->head = [
+            get_string('coltenant', 'local_lehrgaengeapi'),
+            get_string('colcourse', 'local_lehrgaengeapi'),
+            get_string('colusercreated', 'local_lehrgaengeapi'),
+            get_string('coluserexisting', 'local_lehrgaengeapi'),
+            get_string('colenrolled', 'local_lehrgaengeapi'),
+            get_string('colalreadyenrolled', 'local_lehrgaengeapi'),
+            get_string('colunenrolled', 'local_lehrgaengeapi'),
+            get_string('colcompleted', 'local_lehrgaengeapi'),
+        ];
+        foreach ($decoded as $tenantabbr => $tenantresult) {
+            foreach (($tenantresult['userreport'] ?? []) as $courseid => $report) {
+                $users = $report['users'] ?? [];
+                $assignments = $report['assignments'] ?? [];
+                $participanttable->data[] = [
+                    s($tenantabbr),
+                    html_writer::link(
+                        new moodle_url('/course/view.php', ['id' => (int)$courseid]),
+                        (string)($report['florixid'] ?? $courseid)
+                    ),
+                    (int)($users['created'] ?? 0),
+                    (int)($users['existing'] ?? 0),
+                    (int)($assignments['enrolled'] ?? 0),
+                    (int)($assignments['alreadyenrolled'] ?? 0),
+                    (int)($assignments['unenrolled'] ?? 0),
+                    (int)($assignments['completed'] ?? 0),
+                ];
+            }
+        }
+        if ($participanttable->data) {
+            echo html_writer::tag(
+                'details',
+                html_writer::tag('summary', get_string('participantdetails', 'local_lehrgaengeapi'))
+                . html_writer::tag('div', html_writer::table($participanttable), ['style' => 'max-height: 400px; overflow-y: auto;']),
+                ['class' => 'mt-3']
+            );
+        }
     } else if ($run->status === import_run_repository::STATUS_ERROR) {
         echo $OUTPUT->notification(s($decoded['error'] ?? ''), 'error');
     } else if ($run->status === import_run_repository::STATUS_SKIPPED) {
