@@ -96,7 +96,7 @@ final class lehrgaenge_sync_service {
      * @param array $tenant
      * @param array<string,mixed>|string|null $searchcriteria Optional filter,
      *        e.g. ['lehrgangVon' => 'YYYY-01-01', 'lehrgangBis' => 'YYYY-12-31'] for a manual year import.
-     * @return array{created:int,skipped:int,total:int,userreport:array}
+     * @return array{created:int,skipped:int,total:int,failed:array,userreport:array}
      * @throws \Throwable
      */
     public function sync($tenant, $searchcriteria = null): array {
@@ -106,6 +106,7 @@ final class lehrgaenge_sync_service {
                 'created' => 0,
                 'skipped' => 0,
                 'total' => 0,
+                'failed' => [],
                 'userreport' => [],
             ];
         }
@@ -114,6 +115,11 @@ final class lehrgaenge_sync_service {
 
         $created = 0;
         $skipped = 0;
+        // Participant-fetch failures for individual Lehrgaenge (e.g. an unrecoverable
+        // API-side data issue on a single old record) must not abort the whole run -
+        // the course itself is still created/mapped, only the participant sync for that
+        // one Lehrgang is skipped and reported.
+        $failed = [];
 
         $hlfscompany = $this->get_main_company();
         $company = $this->tenantcreator->get_tenant($tenant);
@@ -157,12 +163,16 @@ final class lehrgaenge_sync_service {
 
             if ($existing) {
                 $this->coursemap->set_courseid($externalid, (int)$existing->id);
-                $userreport[$existing->id] = $this->participantssync->sync_for_course(
-                    $externalid,
-                    (int)$existing->id,
-                    $this->build_assignment_course_payload($item, (string)$existing->shortname),
-                    $tenant
-                );
+                try {
+                    $userreport[$existing->id] = $this->participantssync->sync_for_course(
+                        $externalid,
+                        (int)$existing->id,
+                        $this->build_assignment_course_payload($item, (string)$existing->shortname),
+                        $tenant
+                    );
+                } catch (\Throwable $e) {
+                    $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
+                }
                 $skipped++;
                 continue;
             }
@@ -173,12 +183,16 @@ final class lehrgaenge_sync_service {
                 continue;
             }
             $currentcompany->add_course($course);
-            $userreport[$course->id] = $this->participantssync->sync_for_course(
-                $externalid,
-                (int)$course->id,
-                $this->build_assignment_course_payload($item, (string)$course->shortname),
-                $tenant
-            );
+            try {
+                $userreport[$course->id] = $this->participantssync->sync_for_course(
+                    $externalid,
+                    (int)$course->id,
+                    $this->build_assignment_course_payload($item, (string)$course->shortname),
+                    $tenant
+                );
+            } catch (\Throwable $e) {
+                $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
+            }
             $this->coursemap->set_courseid($externalid, (int)$course->id);
             $created++;
         }
@@ -187,6 +201,7 @@ final class lehrgaenge_sync_service {
             'created' => $created,
             'skipped' => $skipped,
             'total' => $total,
+            'failed' => $failed,
             'userreport' => $userreport,
         ];
     }

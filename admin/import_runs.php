@@ -81,17 +81,31 @@ if ($id) {
             get_string('coltenant', 'local_lehrgaengeapi'),
             get_string('colcreated', 'local_lehrgaengeapi'),
             get_string('colskipped', 'local_lehrgaengeapi'),
+            get_string('colfailed', 'local_lehrgaengeapi'),
             get_string('coltotal', 'local_lehrgaengeapi'),
         ];
+        $failedentries = [];
         foreach ($decoded as $tenantabbr => $tenantresult) {
+            $tenantfailed = $tenantresult['failed'] ?? [];
             $tenanttable->data[] = [
                 s($tenantabbr),
                 (int)($tenantresult['created'] ?? 0),
                 (int)($tenantresult['skipped'] ?? 0),
+                count($tenantfailed),
                 (int)($tenantresult['total'] ?? 0),
             ];
+            foreach ($tenantfailed as $failure) {
+                $failedentries[] = html_writer::tag('li', s($tenantabbr) . ' – ' . get_string('failedentry', 'local_lehrgaengeapi', (object)[
+                    'id' => $failure['id'] ?? '?',
+                    'error' => $failure['error'] ?? '',
+                ]));
+            }
         }
         echo html_writer::table($tenanttable);
+        if ($failedentries) {
+            echo $OUTPUT->heading(get_string('failedlehrgaenge', 'local_lehrgaengeapi'), 4);
+            echo html_writer::tag('ul', implode('', $failedentries));
+        }
     } else if ($run->status === import_run_repository::STATUS_ERROR) {
         echo $OUTPUT->notification(s($decoded['error'] ?? ''), 'error');
     } else if ($run->status === import_run_repository::STATUS_SKIPPED) {
@@ -192,10 +206,11 @@ function local_lehrgaengeapi_summarise_run(stdClass $run): string {
     $decoded = import_run_repository::decode_summary($run);
 
     if (in_array($run->status, [import_run_repository::STATUS_SUCCESS, import_run_repository::STATUS_RUNNING], true)) {
-        $totals = ['created' => 0, 'skipped' => 0, 'total' => 0];
+        $totals = ['created' => 0, 'skipped' => 0, 'failed' => 0, 'total' => 0];
         foreach ($decoded as $tenantresult) {
             $totals['created'] += (int)($tenantresult['created'] ?? 0);
             $totals['skipped'] += (int)($tenantresult['skipped'] ?? 0);
+            $totals['failed'] += count($tenantresult['failed'] ?? []);
             $totals['total'] += (int)($tenantresult['total'] ?? 0);
         }
         return get_string('summarytotals', 'local_lehrgaengeapi', (object)$totals);
