@@ -67,11 +67,13 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
     }
 
     /**
-     * Ensure list() includes searchCriteria when array is provided (JSON encoded).
+     * Ensure list() sends array searchcriteria as flat top-level query params, not
+     * wrapped in a searchCriteria=<json> parameter - confirmed via a live HTTP 400
+     * that the real API rejects the wrapped form.
      *
      * @covers \local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint::list
      */
-    public function test_list_encodes_searchcriteria_array(): void {
+    public function test_list_sends_searchcriteria_array_as_flat_params(): void {
         $curlhelper = new curl_helper();
         $fake = $curlhelper->make_fake_curl('[]', 200, "HTTP/1.1 200 OK\r\n\r\n");
 
@@ -84,16 +86,36 @@ final class lehrgaenge_endpoint_test extends \advanced_testcase {
 
         $endpoint = new lehrgaenge_endpoint($client);
 
-        $endpoint->list([], ['beschreibung' => 'Atemschutz', 'versteckeGeschlosseneLehrgaenge' => true]);
+        $endpoint->list([], ['lehrgangVon' => '2024-01-01', 'lehrgangBis' => '2024-12-31']);
 
         $this->assertStringContainsString('/lehrgaenge?', $fake->lasturl);
-        $this->assertStringContainsString('searchCriteria=', $fake->lasturl);
+        $this->assertStringNotContainsString('searchCriteria=', $fake->lasturl);
+        $this->assertStringContainsString('lehrgangVon=2024-01-01', $fake->lasturl);
+        $this->assertStringContainsString('lehrgangBis=2024-12-31', $fake->lasturl);
+    }
 
-        // Ensure it is JSON-ish (encoded). We check for a key fragment in URL-encoded form.
-        $this->assertTrue(
-            (bool)preg_match('/searchCriteria=.*beschreibung/', $fake->lasturl),
-            'Expected searchCriteria to contain JSON encoded "beschreibung".'
+    /**
+     * Ensure list() still wraps a pre-encoded string searchcriteria under the literal
+     * searchCriteria= parameter, for API paths that genuinely expect that shape.
+     *
+     * @covers \local_lehrgaengeapi\api\endpoints\lehrgaenge_endpoint::list
+     */
+    public function test_list_wraps_string_searchcriteria(): void {
+        $curlhelper = new curl_helper();
+        $fake = $curlhelper->make_fake_curl('[]', 200, "HTTP/1.1 200 OK\r\n\r\n");
+
+        $client = new api_client(
+            'https://example.test/rest/services/moodle-services',
+            new token_authenticator('tkn'),
+            30,
+            $fake
         );
+
+        $endpoint = new lehrgaenge_endpoint($client);
+
+        $endpoint->list([], 'raw-precomputed-value');
+
+        $this->assertStringContainsString('searchCriteria=raw-precomputed-value', $fake->lasturl);
     }
 
     /**

@@ -80,6 +80,7 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
             foreach ($allapiendpoints as $apiendpoint) {
                 $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
                 $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint, $searchcriteria);
+                $runs->update_progress($run->id, $summary);
             }
             mtrace('local_lehrgaengeapi: manual import ' . $year . ' summary: ' . json_encode($summary));
             $runs->mark_success($run->id, $summary);

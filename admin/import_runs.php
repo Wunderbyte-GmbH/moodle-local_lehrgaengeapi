@@ -32,6 +32,17 @@ admin_externalpage_setup('local_lehrgaengeapi_import_runs');
 $id = optional_param('id', 0, PARAM_INT);
 $runs = new import_run_repository();
 
+$run = $id ? $runs->get($id) : null;
+$recent = $id ? [] : $runs->get_recent(100);
+
+// Auto-refresh while something is still running, so progress is visible without
+// manual reloads - no JS needed, this is Moodle's own periodic meta-refresh.
+if ($run && $run->status === import_run_repository::STATUS_RUNNING) {
+    $PAGE->set_periodic_refresh_delay(5);
+} else if (!$id && array_filter($recent, fn($r) => $r->status === import_run_repository::STATUS_RUNNING)) {
+    $PAGE->set_periodic_refresh_delay(10);
+}
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('importrunspagename', 'local_lehrgaengeapi'));
 
@@ -42,7 +53,6 @@ echo html_writer::link(
 );
 
 if ($id) {
-    $run = $runs->get($id);
     if (!$run) {
         echo $OUTPUT->notification(get_string('runnotfound', 'local_lehrgaengeapi'), 'error');
         echo $OUTPUT->footer();
@@ -64,7 +74,7 @@ if ($id) {
 
     $decoded = import_run_repository::decode_summary($run);
 
-    if ($run->status === import_run_repository::STATUS_SUCCESS) {
+    if (in_array($run->status, [import_run_repository::STATUS_SUCCESS, import_run_repository::STATUS_RUNNING], true)) {
         $tenanttable = new html_table();
         $tenanttable->attributes['class'] = 'generaltable';
         $tenanttable->head = [
@@ -97,8 +107,6 @@ if ($id) {
         ['class' => 'btn btn-secondary mt-3']
     );
 } else {
-    $recent = $runs->get_recent(100);
-
     if (!$recent) {
         echo $OUTPUT->notification(get_string('norunsyet', 'local_lehrgaengeapi'), 'info');
         echo $OUTPUT->footer();
@@ -183,7 +191,7 @@ function local_lehrgaengeapi_triggeredby_name(?int $userid): string {
 function local_lehrgaengeapi_summarise_run(stdClass $run): string {
     $decoded = import_run_repository::decode_summary($run);
 
-    if ($run->status === import_run_repository::STATUS_SUCCESS) {
+    if (in_array($run->status, [import_run_repository::STATUS_SUCCESS, import_run_repository::STATUS_RUNNING], true)) {
         $totals = ['created' => 0, 'skipped' => 0, 'total' => 0];
         foreach ($decoded as $tenantresult) {
             $totals['created'] += (int)($tenantresult['created'] ?? 0);

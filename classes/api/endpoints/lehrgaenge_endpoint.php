@@ -60,17 +60,19 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
     /**
      * Receive all courses assigned to the respective organisation.
      *
-     * OpenAPI: GET /lehrgaenge?searchCriteria=<object>
+     * OpenAPI: GET /lehrgaenge?lehrgangVon=<date>&lehrgangBis=<date>&...
      *
-     * NOTE: The OpenAPI describes `searchCriteria` as an object in the query string.
-     * Many APIs encode such objects as JSON string.
-     * We therefore accept either:
-     * - array $searchcriteria (will be JSON encoded)
-     * - string $searchcriteria (sent as-is)
+     * The real API takes filter fields (e.g. lehrgangVon/lehrgangBis) as their own
+     * top-level query parameters, NOT wrapped in a searchCriteria=<json> object as the
+     * OpenAPI spec's `searchCriteria` naming might suggest - confirmed via a live
+     * HTTP 400 when the wrapped form was tried. We therefore accept either:
+     * - array $searchcriteria (each key sent as its own query parameter)
+     * - string $searchcriteria (sent as-is under a literal searchCriteria= parameter,
+     *   kept for API paths that genuinely expect that shape)
      * - null (no filter)
      *
      * @param array $tenant Tenant information.
-     * @param array<string,mixed>|string|null $searchcriteria Search criteria as array or pre-encoded string.
+     * @param array<string,mixed>|string|null $searchcriteria Filter fields as array, or a pre-encoded searchCriteria string.
      * @return array<mixed> List of Lehrgang objects (decoded).
      * @throws api_exception
      * @throws \JsonException
@@ -78,7 +80,7 @@ final class lehrgaenge_endpoint implements lehrgaenge_endpoint_interface {
     public function list($tenant, $searchcriteria = null): array {
         $query = [];
         if (is_array($searchcriteria)) {
-            $query['searchCriteria'] = json_encode($searchcriteria, JSON_THROW_ON_ERROR);
+            $query = $searchcriteria;
         } else if (is_string($searchcriteria) && $searchcriteria !== '') {
             $query['searchCriteria'] = $searchcriteria;
         }

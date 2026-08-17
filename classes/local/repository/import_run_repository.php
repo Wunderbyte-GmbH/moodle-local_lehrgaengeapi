@@ -105,6 +105,25 @@ final class import_run_repository {
     }
 
     /**
+     * Update the summary of a still-running run without changing its status or end time.
+     *
+     * Used to surface progress (e.g. per-tenant results so far) while a run is in
+     * progress, so the admin UI can show something other than a static "running" row.
+     *
+     * @param int $runid Run id.
+     * @param array $summary Partial per-tenant summary collected so far, will be JSON-encoded.
+     * @return void
+     */
+    public function update_progress(int $runid, array $summary): void {
+        global $DB;
+
+        $DB->update_record(self::TABLE, (object)[
+            'id' => $runid,
+            'summary' => json_encode($summary, JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
+    /**
      * Persist the final status, end time and summary for a run.
      *
      * @param int $runid Run id.
