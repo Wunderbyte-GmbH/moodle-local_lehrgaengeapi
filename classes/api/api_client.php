@@ -166,7 +166,14 @@ final class api_client {
         });
 
         if (!empty($filtered)) {
-            $url .= '?' . http_build_query($filtered);
+            // Explicit '&' separator: Moodle's bootstrap sets the ini setting
+            // arg_separator.output to '&amp;' (so links built via moodle_url print
+            // HTML-safely without extra escaping). http_build_query() without an
+            // explicit separator inherits that ini setting, which silently corrupts
+            // real outgoing HTTP requests - e.g. lehrgangBis becomes an unrecognised
+            // "amp;lehrgangBis" parameter for the receiving API. Confirmed empirically:
+            // arg_separator.output is '&' before Moodle bootstrap, '&amp;' after.
+            $url .= '?' . http_build_query($filtered, '', '&');
         }
 
         return $url;
