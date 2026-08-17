@@ -27,6 +27,7 @@ namespace local_lehrgaengeapi\task;
 use local_lehrgaengeapi\factory;
 use local_lehrgaengeapi\local\tenants\tenants;
 use local_lehrgaengeapi\local\repository\import_run_repository;
+use local_lehrgaengeapi\api\exceptions\api_exception;
 
 /**
  * Adhoc task: manual year-filtered Lehrgaenge import, triggered from the admin UI.
@@ -86,8 +87,12 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
             $runs->mark_success($run->id, $summary);
             $this->notify_user($userid, $year, import_run_repository::STATUS_SUCCESS);
         } catch (\Throwable $e) {
-            mtrace('local_lehrgaengeapi: manual import ' . $year . ' failed: ' . $e->getMessage());
-            $runs->mark_error($run->id, $e->getMessage());
+            $detail = $e->getMessage();
+            if ($e instanceof api_exception && $e->get_response_body() !== '') {
+                $detail .= ' | Response: ' . $e->get_response_body();
+            }
+            mtrace('local_lehrgaengeapi: manual import ' . $year . ' failed: ' . $detail);
+            $runs->mark_error($run->id, $detail);
             $this->notify_user($userid, $year, import_run_repository::STATUS_ERROR);
             // Deliberately not rethrown: the user already gets a notification with the
             // outcome. Letting Moodle's adhoc task retry mechanism silently re-run a

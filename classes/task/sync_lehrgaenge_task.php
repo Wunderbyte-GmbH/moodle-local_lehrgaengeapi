@@ -30,6 +30,7 @@ use local_lehrgaengeapi\local\tenants\tenants;
 use local_lehrgaengeapi\local\repository\import_run_repository;
 use local_lehrgaengeapi\api\exceptions\api_rate_limited_exception;
 use local_lehrgaengeapi\api\exceptions\api_unauthorized_exception;
+use local_lehrgaengeapi\api\exceptions\api_exception;
 
 /**
  * Scheduled task: sync lehrgaenge.
@@ -82,12 +83,28 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
         } catch (api_rate_limited_exception $e) {
             $retry = method_exists($e, 'get_retry_after_seconds') ? $e->get_retry_after_seconds() : null;
             mtrace('local_lehrgaengeapi: rate limited (429). Retry-After=' . ($retry ?? 'n/a'));
-            $runs->mark_error($run->id, 'rate_limited: ' . $e->getMessage());
+            $detail = 'rate_limited: ' . $e->getMessage();
+            if ($e->get_response_body() !== '') {
+                $detail .= ' | Response: ' . $e->get_response_body();
+            }
+            $runs->mark_error($run->id, $detail);
             // Let Moodle mark run as failed so faildelay kicks in.
             throw $e;
         } catch (api_unauthorized_exception $e) {
             mtrace('local_lehrgaengeapi: unauthorized (401). Check token setting.');
-            $runs->mark_error($run->id, 'unauthorized: ' . $e->getMessage());
+            $detail = 'unauthorized: ' . $e->getMessage();
+            if ($e->get_response_body() !== '') {
+                $detail .= ' | Response: ' . $e->get_response_body();
+            }
+            $runs->mark_error($run->id, $detail);
+            throw $e;
+        } catch (api_exception $e) {
+            mtrace('local_lehrgaengeapi: unexpected error: ' . $e->getMessage());
+            $detail = $e->getMessage();
+            if ($e->get_response_body() !== '') {
+                $detail .= ' | Response: ' . $e->get_response_body();
+            }
+            $runs->mark_error($run->id, $detail);
             throw $e;
         } catch (\Throwable $e) {
             mtrace('local_lehrgaengeapi: unexpected error: ' . $e->getMessage());
