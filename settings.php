@@ -33,6 +33,20 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage($componentname, get_string('pluginname', $componentname));
     $ADMIN->add('localplugins', $settings);
 
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_lehrgaengeapi_manual_import',
+        get_string('manualimportpagename', $componentname),
+        new moodle_url('/local/lehrgaengeapi/admin/manual_import.php'),
+        'moodle/site:config'
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_lehrgaengeapi_import_runs',
+        get_string('importrunspagename', $componentname),
+        new moodle_url('/local/lehrgaengeapi/admin/import_runs.php'),
+        'moodle/site:config'
+    ));
+
     if ($ADMIN->fulltree) {
         $settings->add(new admin_setting_heading(
             $componentname . '/settings_heading',

@@ -94,10 +94,12 @@ final class lehrgaenge_sync_service {
     /**
      * Sync all Lehrgaenge.
      * @param array $tenant
+     * @param array<string,mixed>|string|null $searchcriteria Optional filter,
+     *        e.g. ['lehrgangVon' => 'YYYY-01-01', 'lehrgangBis' => 'YYYY-12-31'] for a manual year import.
      * @return array{created:int,skipped:int,total:int,userreport:array}
      * @throws \Throwable
      */
-    public function sync($tenant): array {
+    public function sync($tenant, $searchcriteria = null): array {
         global $DB;
         if (empty($tenant['apikey'])) {
             return [
@@ -107,7 +109,7 @@ final class lehrgaenge_sync_service {
                 'userreport' => [],
             ];
         }
-        $items = $this->endpoint->list($tenant);
+        $items = $this->endpoint->list($tenant, $searchcriteria);
         $total = is_array($items) ? count($items) : 0;
 
         $created = 0;

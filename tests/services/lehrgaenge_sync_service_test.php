@@ -293,6 +293,85 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
     }
 
     /**
+     * sync() passes the optional searchcriteria through to the endpoint unchanged.
+     *
+     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
+     */
+    public function test_sync_passes_searchcriteria_to_endpoint(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
+        $this->resetAfterTest(true);
+
+        // sync() always resolves the HLFS/tenant company before looking at items, so
+        // IOMAD is required even with an empty items list.
+        $endpoint = $this->fake_endpoint([]);
+
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            new coursemap_repository(),
+            new course_creator(),
+            new participants_sync_service(
+                $endpoint,
+                new users_creator(),
+                new participant_course_assigner()
+            ),
+            new tenant_creator()
+        );
+
+        $tenant = [
+            'name' => 'Landkreis Bergstraße',
+            'abbr' => 'FD',
+            'apikey' => 'Testing key',
+        ];
+
+        $searchcriteria = ['lehrgangVon' => '2020-01-01', 'lehrgangBis' => '2020-12-31'];
+        $summary = $service->sync($tenant, $searchcriteria);
+
+        $this->assertSame($searchcriteria, $endpoint->lastsearchcriteria);
+        $this->assertSame(0, $summary['total']);
+    }
+
+    /**
+     * sync() defaults searchcriteria to null, preserving the "latest data" behaviour
+     * the automatic scheduled task relies on.
+     *
+     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
+     */
+    public function test_sync_defaults_searchcriteria_to_null(): void {
+        global $CFG;
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
+        $this->resetAfterTest(true);
+
+        $endpoint = $this->fake_endpoint([]);
+
+        $service = new lehrgaenge_sync_service(
+            $endpoint,
+            new coursemap_repository(),
+            new course_creator(),
+            new participants_sync_service(
+                $endpoint,
+                new users_creator(),
+                new participant_course_assigner()
+            ),
+            new tenant_creator()
+        );
+
+        $tenant = [
+            'name' => 'Landkreis Bergstraße',
+            'abbr' => 'FD',
+            'apikey' => 'Testing key',
+        ];
+
+        $service->sync($tenant);
+
+        $this->assertNull($endpoint->lastsearchcriteria);
+    }
+
+    /**
      * Create a fake endpoint instance that returns fixed list() data.
      *
      * @param array $items List payload.
@@ -306,6 +385,9 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
 
             /** @var array<string, array> */
             private array $participantsbyid;
+
+            /** @var array<string,mixed>|string|null Last searchcriteria received by list(), for assertions. */
+            public $lastsearchcriteria = null;
 
             /**
              * Constructor.
@@ -326,6 +408,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
              * @return array
              */
             public function list($tenant, $searchcriteria = null): array {
+                $this->lastsearchcriteria = $searchcriteria;
                 return $this->items;
             }
 

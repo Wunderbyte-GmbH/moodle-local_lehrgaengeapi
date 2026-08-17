@@ -39,5 +39,23 @@
       </INDEXES>
     </TABLE>
 
+    <TABLE NAME="local_lehrgaengeapi_import_run" COMMENT="Log of manual and automatic Lehrgaenge sync/import runs">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" COMMENT="Primary key"/>
+        <FIELD NAME="year" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Filtered year, null = automatic/latest run without year filter"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" DEFAULT="running" COMMENT="running|success|error|skipped"/>
+        <FIELD NAME="triggeredby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="user.id who triggered a manual run, null for automatic/cron"/>
+        <FIELD NAME="timestarted" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0" COMMENT="Run start timestamp"/>
+        <FIELD NAME="timeended" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Run end timestamp, null while running"/>
+        <FIELD NAME="summary" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON-encoded per-tenant summary or error details"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timestarted_ix" UNIQUE="false" FIELDS="timestarted"/>
+      </INDEXES>
+    </TABLE>
+
   </TABLES>
 </XMLDB>

@@ -93,5 +93,32 @@ function xmldb_local_lehrgaengeapi_upgrade(int $oldversion): bool {
         // Savepoint.
         upgrade_plugin_savepoint(true, 2026021700, 'local', 'lehrgaengeapi');
     }
+
+        // 2026081700: Add import run log table.
+    if ($oldversion < 2026081700) {
+        $table = new xmldb_table('local_lehrgaengeapi_import_run');
+
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('year', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'running');
+            $table->add_field('triggeredby', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('timestarted', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timeended', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('summary', XMLDB_TYPE_TEXT, null, null, null, null, null);
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_lehrgaengeapi_import_run');
+        $index = new xmldb_index('timestarted_ix', XMLDB_INDEX_NOTUNIQUE, ['timestarted']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026081700, 'local', 'lehrgaengeapi');
+    }
     return true;
 }
