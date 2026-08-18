@@ -106,6 +106,17 @@ if ($id) {
             echo $OUTPUT->heading(get_string('failedlehrgaenge', 'local_lehrgaengeapi'), 4);
             echo html_writer::tag('ul', implode('', $failedentries));
         }
+        $tenanterrors = [];
+        foreach ($decoded as $tenantabbr => $tenantresult) {
+            if (!empty($tenantresult['error'])) {
+                $tenanterrors[] = html_writer::tag('li', s($tenantabbr) . ' – ' . s($tenantresult['error']));
+            }
+        }
+        if ($tenanterrors) {
+            echo $OUTPUT->notification(get_string('tenantserrors', 'local_lehrgaengeapi'), 'warning');
+            echo html_writer::tag('ul', implode('', $tenanterrors));
+        }
+
         $participanttable = new html_table();
         $participanttable->attributes['class'] = 'generaltable';
         $participanttable->head = [

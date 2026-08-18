@@ -96,6 +96,7 @@ $string['taskmanualimportlehrgaenge'] = 'Manual Lehrgaenge import (year)';
 $string['tasksynclehrgaenge'] = 'Sync Lehrgaenge (external API)';
 $string['tenantdescription'] = 'For each tenant you can specify a custom API token, client certificate file and client key file.';
 $string['tenantheading'] = 'Tenant settings';
+$string['tenantserrors'] = 'Fetching the Lehrgaenge list failed for the following tenants (skipped, remaining tenants were still processed):';
 $string['timeout'] = 'Request timeout (seconds)';
 $string['timeoutdesc'] = 'HTTP request timeout in seconds for external API calls.';
 $string['token'] = 'API token';

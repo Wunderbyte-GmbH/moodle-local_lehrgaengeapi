@@ -96,6 +96,7 @@ $string['taskmanualimportlehrgaenge'] = 'Manueller Lehrgaenge-Import (Jahr)';
 $string['tasksynclehrgaenge'] = 'Lehrgaenge synchronisieren (externe API)';
 $string['tenantdescription'] = 'Für jeden Mandanten können Sie ein eigenes API-Token, ein Client-Zertifikat und einen Client-Schlüssel angeben.';
 $string['tenantheading'] = 'Mandanten-Einstellungen';
+$string['tenantserrors'] = 'Bei folgenden Mandanten ist der Abruf der Lehrgänge-Liste fehlgeschlagen (übersprungen, restliche Mandanten wurden trotzdem verarbeitet):';
 $string['timeout'] = 'Zeitlimit für Anfragen (Sekunden)';
 $string['timeoutdesc'] = 'HTTP-Zeitlimit in Sekunden für externe API-Aufrufe.';
 $string['token'] = 'API-Token';

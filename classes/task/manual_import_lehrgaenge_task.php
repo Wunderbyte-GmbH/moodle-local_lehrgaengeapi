@@ -79,8 +79,25 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
             $allapiendpoints = tenants::get_all_with_keys();
             $summary = [];
             foreach ($allapiendpoints as $apiendpoint) {
-                $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
-                $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint, $searchcriteria);
+                try {
+                    $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
+                    $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint, $searchcriteria);
+                } catch (\Throwable $e) {
+                    $tenantdetail = $e->getMessage();
+                    if ($e instanceof api_exception && $e->get_response_body() !== '') {
+                        $tenantdetail .= ' | Response: ' . $e->get_response_body();
+                    }
+                    mtrace('local_lehrgaengeapi: manual import ' . $year . ' - tenant '
+                        . $apiendpoint['abbr'] . ' failed: ' . $tenantdetail);
+                    $summary[$apiendpoint['abbr']] = [
+                        'created' => 0,
+                        'skipped' => 0,
+                        'total' => 0,
+                        'failed' => [],
+                        'userreport' => [],
+                        'error' => $tenantdetail,
+                    ];
+                }
                 $runs->update_progress($run->id, $summary);
             }
             mtrace('local_lehrgaengeapi: manual import ' . $year . ' summary: ' . json_encode($summary));
