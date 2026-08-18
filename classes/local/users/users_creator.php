@@ -65,37 +65,39 @@ final class users_creator {
                 continue;
             }
 
+            $id = trim((string)($p['id'] ?? ''));
             $initialid = trim((string)($p['initialId'] ?? ''));
-            if ($initialid === '') {
+
+            if ($id === '') {
                 $skipped++;
                 continue;
             }
-            $map = $this->usermap->ensure($initialid);
+            $map = $this->usermap->ensure($id);
 
             if (!empty($map->userid)) {
                 $u = $DB->get_record('user', ['id' => (int)$map->userid, 'deleted' => 0], '*', IGNORE_MISSING);
                 if ($u) {
-                    $this->check_and_fill_initial_id($u, $initialid);
+                    $this->check_and_fill_ids($u, $id, $initialid);
                     $existing++;
                     continue;
                 }
             }
 
-            $u = $DB->get_record('user', ['idnumber' => $initialid, 'deleted' => 0], '*', IGNORE_MISSING);
+            $u = $DB->get_record('user', ['idnumber' => $id, 'deleted' => 0], '*', IGNORE_MISSING);
             if ($u) {
-                $this->usermap->set_userid($initialid, (int)$u->id);
+                $this->usermap->set_userid($id, (int)$u->id);
                 $existing++;
                 continue;
             }
 
             $u = $DB->get_record('user', [
                 'mnethostid' => (int)$CFG->mnet_localhost_id,
-                'username' => $initialid,
+                'username' => $id,
                 'deleted' => 0,
             ], '*', IGNORE_MISSING);
             if ($u) {
-                $this->usermap->set_userid($initialid, (int)$u->id);
-                $this->check_and_fill_initial_id($u, $initialid);
+                $this->usermap->set_userid($id, (int)$u->id);
+                $this->check_and_fill_ids($u, $id, $initialid);
                 $existing++;
                 continue;
             }
@@ -108,11 +110,11 @@ final class users_creator {
                 $firstname = 'Teilnehmer';
             }
             if ($lastname === '') {
-                $lastname = $initialid;
+                $lastname = $id;
             }
 
-            $username = $initialid;
             $email = $this->make_unique_email($email);
+            $username = trim((string)($p['initialId'] ?? $email));
 
             $newuser = (object)[
                 'auth'       => 'manual',
@@ -123,7 +125,7 @@ final class users_creator {
                 'firstname'  => $firstname,
                 'lastname'   => $lastname,
                 'email'      => $email,
-                'idnumber'   => $username,
+                'idnumber'   => $id,
                 'city'       => (string)($p['ort'] ?? ''),
                 'country'    => 'DE',
             ];
@@ -131,7 +133,7 @@ final class users_creator {
             try {
                 $userid = user_create_user($newuser, false, false);
                 // Persist mapping.
-                $this->usermap->set_userid($initialid, (int)$userid);
+                $this->usermap->set_userid($id, (int)$userid);
                 $created++;
             } catch (\dml_write_exception $e) {
                 // Another process may have inserted the same username concurrently.
@@ -142,7 +144,7 @@ final class users_creator {
                 ], '*', IGNORE_MISSING);
 
                 if ($u) {
-                    $this->usermap->set_userid($initialid, (int)$u->id);
+                    $this->usermap->set_userid($id, (int)$u->id);
                     $existing++;
                     continue;
                 }
@@ -172,16 +174,16 @@ final class users_creator {
         if (!empty($p['emails']['emailPrivat'])) {
             return trim((string)$p['emails']['emailPrivat']);
         }
-        return $this->placeholder_email($p['initialId']);
+        return $this->placeholder_email($p['id']);
     }
 
     /**
      * Deterministic placeholder email.
-     * @param string $initialid
+     * @param string $id
      * @return string
      */
-    private function placeholder_email(string $initialid): string {
-        $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $initialid));
+    private function placeholder_email(string $id): string {
+        $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $id));
         $slug = trim($slug, '-');
         if ($slug === '') {
             $slug = 'user';
@@ -227,12 +229,19 @@ final class users_creator {
      * Update initial id if empty. This is used to ensure that the initial id is set for existing users.
      *
      * @param stdClass $user
+     * @param string $id
+     * @param string $initialid
      * @return string
      */
-    private function check_and_fill_initial_id(stdClass $user, string $initialid): void {
+    private function check_and_fill_ids(stdClass $user, string $id, string $initialid): void {
+        global $DB;
         if (empty($user->idnumber)) {
-            global $DB;
-            $user->idnumber = $initialid;
+            $user->idnumber = $id;
+            $DB->update_record('user', $user);
+        }
+        if ($initialid !== '' && $user->username != $initialid) {
+            $user->username = $initialid;
+            $user->password = hash_internal_user_password($initialid . 'Hlfs#');
             $DB->update_record('user', $user);
         }
     }

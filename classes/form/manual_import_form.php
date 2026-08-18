@@ -45,8 +45,9 @@ final class manual_import_form extends \moodleform {
         $mform = $this->_form;
 
         $currentyear = (int)date('Y');
+        $firstyear = 2012;
         $years = [];
-        for ($year = $currentyear; $year >= $currentyear - 15; $year--) {
+        for ($year = $currentyear; $year >= $firstyear; $year--) {
             $years[$year] = (string)$year;
         }
 
