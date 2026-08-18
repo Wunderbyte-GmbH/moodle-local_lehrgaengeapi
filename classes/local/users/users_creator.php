@@ -114,7 +114,7 @@ final class users_creator {
             }
 
             $email = $this->make_unique_email($email);
-            $username = trim((string)($p['initialId'] ?? $email));
+            $username = $initialid !== '' ? $initialid : $email;
 
             $newuser = (object)[
                 'auth'       => 'manual',
