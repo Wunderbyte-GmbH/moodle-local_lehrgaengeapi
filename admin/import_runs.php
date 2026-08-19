@@ -158,11 +158,17 @@ if ($id) {
         }
         if ($participanttable->data) {
             echo html_writer::tag('style', '
+                /* border-collapse: collapse (Moodle default for .generaltable) breaks
+                   position: sticky on <th> in most browsers - must force "separate". */
+                .sticky-header-table {
+                    border-collapse: separate !important;
+                    border-spacing: 0;
+                }
                 .sticky-header-table thead th {
-                    position: sticky;
-                    top: 0;
-                    background-color: var(--body-bg, #fff);
-                    z-index: 1;
+                    position: sticky !important;
+                    top: 0 !important;
+                    background-color: var(--body-bg, #fff) !important;
+                    z-index: 2;
                 }
             ');
             echo html_writer::tag(
