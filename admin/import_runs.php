@@ -118,7 +118,7 @@ if ($id) {
         }
 
         $participanttable = new html_table();
-        $participanttable->attributes['class'] = 'generaltable';
+        $participanttable->attributes['class'] = 'generaltable sticky-header-table';
         $participanttable->head = [
             get_string('coltenant', 'local_lehrgaengeapi'),
             get_string('colcourse', 'local_lehrgaengeapi'),
@@ -157,6 +157,14 @@ if ($id) {
             }
         }
         if ($participanttable->data) {
+            echo html_writer::tag('style', '
+                .sticky-header-table thead th {
+                    position: sticky;
+                    top: 0;
+                    background-color: var(--body-bg, #fff);
+                    z-index: 1;
+                }
+            ');
             echo html_writer::tag(
                 'details',
                 html_writer::tag('summary', get_string('participantdetails', 'local_lehrgaengeapi'))
