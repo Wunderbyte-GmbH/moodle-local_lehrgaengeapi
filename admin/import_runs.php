@@ -158,6 +158,15 @@ if ($id) {
         }
         if ($participanttable->data) {
             echo html_writer::tag('style', '
+                /* Moodle wraps .generaltable automatically in a .table-responsive div
+                   with its own overflow: auto - that is the real nearest scrolling
+                   ancestor for position: sticky, not our own wrapper div. So the scroll
+                   height must be applied to .table-responsive itself, scoped via our
+                   wrapper class. */
+                .lehrgaengeapi-participant-scroll .table-responsive {
+                    max-height: 400px;
+                    overflow-y: auto;
+                }
                 /* border-collapse: collapse (Moodle default for .generaltable) breaks
                    position: sticky on <th> in most browsers - must force "separate". */
                 .sticky-header-table {
@@ -174,7 +183,7 @@ if ($id) {
             echo html_writer::tag(
                 'details',
                 html_writer::tag('summary', get_string('participantdetails', 'local_lehrgaengeapi'))
-                . html_writer::tag('div', html_writer::table($participanttable), ['style' => 'max-height: 400px; overflow-y: auto;']),
+                . html_writer::tag('div', html_writer::table($participanttable), ['class' => 'lehrgaengeapi-participant-scroll']),
                 ['class' => 'mt-3']
             );
         }
