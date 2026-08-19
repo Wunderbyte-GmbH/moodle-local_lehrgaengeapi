@@ -189,18 +189,18 @@ final class participant_course_assigner {
             $report['skipped']++;
             return;
         }
-        if (!isset($participant['initialId'])) {
+        if (!isset($participant['id'])) {
             $report['skipped']++;
             return;
         }
 
-        $initialid = trim((string)($participant['initialId'] ?? ''));
-        if ($initialid === '') {
+        $id = trim((string)($participant['id'] ?? ''));
+        if ($id === '') {
             $report['skipped']++;
             return;
         }
 
-        $map = $this->usermap->get_by_externalinitialid($initialid);
+        $map = $this->usermap->get_by_externalid($id);
         if (!$map || empty($map->userid)) {
             $report['skipped']++;
             return;

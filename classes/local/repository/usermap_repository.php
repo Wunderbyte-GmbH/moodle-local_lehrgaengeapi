@@ -38,33 +38,33 @@ final class usermap_repository {
     private const TABLE = 'local_lehrgaengeapi_usermap';
 
     /**
-     * Get mapping by external initial id.
+     * Get mapping by external id.
      *
-     * @param string $externalinitialid External Teilnehmer.initialId.
+     * @param string $externalid External Teilnehmer.id.
      * @return \stdClass|null
      */
-    public function get_by_externalinitialid(string $externalinitialid): ?stdClass {
+    public function get_by_externalid(string $externalid): ?stdClass {
         global $DB;
-        return $DB->get_record(self::TABLE, ['externalinitialid' => $externalinitialid]) ?: null;
+        return $DB->get_record(self::TABLE, ['externalinitialid' => $externalid]) ?: null;
     }
 
     /**
      * Ensure mapping row exists (creates if missing).
      *
-     * @param string $externalinitialid External Teilnehmer.initialId.
+     * @param string $externalid External Teilnehmer.id.
      * @return \stdClass Mapping row.
      */
-    public function ensure(string $externalinitialid): stdClass {
+    public function ensure(string $externalid): stdClass {
         global $DB;
 
-        $existing = $this->get_by_externalinitialid($externalinitialid);
+        $existing = $this->get_by_externalid($externalid);
         if ($existing) {
             return $existing;
         }
 
         $now = time();
         $record = (object)[
-            'externalinitialid' => $externalinitialid,
+            'externalinitialid' => $externalid,
             'userid' => null,
             'timecreated' => $now,
             'timemodified' => $now,
@@ -77,14 +77,14 @@ final class usermap_repository {
     /**
      * Set (or update) Moodle userid for a given external initial id.
      *
-     * @param string $externalinitialid External Lehrgangid initial.
+     * @param string $externalid External Lehrgangid initial.
      * @param int $userid Moodle user.id.
      * @return stdClass Updated mapping row.
      */
-    public function set_userid(string $externalinitialid, int $userid): stdClass {
+    public function set_userid(string $externalid, int $userid): stdClass {
         global $DB;
 
-        $row = $this->ensure($externalinitialid);
+        $row = $this->ensure($externalid);
 
         if ((int)($row->userid ?? 0) === $userid) {
             return $row;
@@ -94,6 +94,6 @@ final class usermap_repository {
         $row->timemodified = time();
         $DB->update_record(self::TABLE, $row);
 
-        return $this->get_by_externalinitialid($externalinitialid) ?? $row;
+        return $this->get_by_externalid($externalid) ?? $row;
     }
 }

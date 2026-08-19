@@ -77,7 +77,7 @@ final class users_creator_test extends \advanced_testcase {
         $this->assertSame('existing@example.invalid', $storeduser->email);
 
         $repo = new usermap_repository();
-        $map = $repo->get_by_externalinitialid('P-00004561');
+        $map = $repo->get_by_externalid('P-00004561');
         $this->assertNotNull($map);
         $this->assertSame((int)$existinguser->id, (int)$map->userid);
     }

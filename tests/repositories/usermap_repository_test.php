@@ -38,7 +38,7 @@ final class usermap_repository_test extends \advanced_testcase {
      * Ensure() creates mapping row once and returns same row on repeated calls.
      *
      * @covers \local_lehrgaengeapi\local\repository\usermap_repository::ensure
-     * @covers \local_lehrgaengeapi\local\repository\usermap_repository::get_by_externalinitialid
+     * @covers \local_lehrgaengeapi\local\repository\usermap_repository::get_by_externalid
      */
     public function test_ensure_creates_once(): void {
         global $DB;
