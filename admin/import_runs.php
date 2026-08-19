@@ -124,10 +124,14 @@ if ($id) {
             get_string('colcourse', 'local_lehrgaengeapi'),
             get_string('colusercreated', 'local_lehrgaengeapi'),
             get_string('coluserexisting', 'local_lehrgaengeapi'),
+            get_string('coluserskipped', 'local_lehrgaengeapi'),
             get_string('colenrolled', 'local_lehrgaengeapi'),
             get_string('colalreadyenrolled', 'local_lehrgaengeapi'),
             get_string('colunenrolled', 'local_lehrgaengeapi'),
+            get_string('colalreadyunenrolled', 'local_lehrgaengeapi'),
+            get_string('colnoop', 'local_lehrgaengeapi'),
             get_string('colcompleted', 'local_lehrgaengeapi'),
+            get_string('colassignmentskipped', 'local_lehrgaengeapi'),
         ];
         foreach ($decoded as $tenantabbr => $tenantresult) {
             foreach (($tenantresult['userreport'] ?? []) as $courseid => $report) {
@@ -141,10 +145,14 @@ if ($id) {
                     ),
                     (int)($users['created'] ?? 0),
                     (int)($users['existing'] ?? 0),
+                    (int)($users['skipped'] ?? 0),
                     (int)($assignments['enrolled'] ?? 0),
                     (int)($assignments['alreadyenrolled'] ?? 0),
                     (int)($assignments['unenrolled'] ?? 0),
+                    (int)($assignments['alreadyunenrolled'] ?? 0),
+                    (int)($assignments['noop'] ?? 0),
                     (int)($assignments['completed'] ?? 0),
+                    (int)($assignments['skipped'] ?? 0),
                 ];
             }
         }
