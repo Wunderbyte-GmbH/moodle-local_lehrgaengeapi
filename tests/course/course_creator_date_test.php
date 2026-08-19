@@ -175,6 +175,84 @@ final class course_creator_date_test extends \advanced_testcase {
     }
 
     /**
+     * When a previous-year course exists (same tenant/coursename, year - 1), it is used
+     * as the template for the new course - both for field derivation and for the queued
+     * content-copy task - in preference over the global master template course.
+     *
+     * @covers \local_lehrgaengeapi\local\course\course_creator::create
+     */
+    public function test_new_course_is_created_from_previous_year_course(): void {
+        global $CFG, $DB;
+
+        if (!file_exists($CFG->dirroot . '/local/iomad/lib/company.php')) {
+            $this->markTestSkipped('IOMAD not available');
+        }
+
+        $this->resetAfterTest(true);
+        set_config('apikey_hp', 'testing_the_api_key_function', 'local_lehrgaengeapi');
+
+        $currentyearshort = (int)date('y');
+        $previousyearshort = $currentyearshort - 1;
+
+        $endpoint = $this->fake_endpoint([
+            [
+                'id'              => 'LG-PREV-1',
+                'bezeichnung'     => 'Vorjahrestest',
+                'kurzbezeichnung' => 'PREVYEAR',
+                'endTag'          => date('Y') . '-12-31',
+            ],
+        ]);
+
+        $category = $this->getDataGenerator()->create_category([
+            'name'     => 'Prevyear test category',
+            'idnumber' => 'prevyear-test-category',
+        ]);
+
+        // Global master template - must NOT be used once a previous-year course exists.
+        $mastertemplate = $this->getDataGenerator()->create_course([
+            'category'  => $category->id,
+            'fullname'  => 'PREVYEAR master',
+            'shortname' => 'PREVYEAR',
+            'summary'   => 'master template summary',
+        ]);
+
+        // The actual previous-year course - this is what should be used as template.
+        $previousyearcourse = $this->getDataGenerator()->create_course([
+            'category'  => $category->id,
+            'fullname'  => 'PY-PREVYEAR-' . $previousyearshort,
+            'shortname' => 'PY-PREVYEAR-' . $previousyearshort,
+            'summary'   => 'previous year summary',
+        ]);
+
+        $company = [
+            'name'     => 'Prevyear Test Feuerwehr',
+            'shortname' => 'PY',
+            'code'     => 'PY',
+            'city'     => 'Teststadt',
+            'postcode' => 77777,
+            'country'  => 'DE',
+            'category' => $category->id,
+        ];
+        $DB->insert_record('company', $company);
+
+        $service = $this->build_sync_service($endpoint);
+        $service->sync(['name' => 'Prevyear Test Feuerwehr', 'abbr' => 'PY', 'apikey' => 'Testing key']);
+
+        $newcourse = $DB->get_record('course', ['shortname' => 'PY-PREVYEAR-' . $currentyearshort], '*', MUST_EXIST);
+
+        // Fields were derived from the previous-year course, not the master template.
+        $this->assertSame('previous year summary', $newcourse->summary);
+
+        // The queued copy task must reference the previous-year course as its template.
+        $taskrow = $DB->get_record('task_adhoc', [
+            'classname' => '\local_lehrgaengeapi\task\copy_course_content_task',
+        ], '*', MUST_EXIST);
+        $payload = json_decode($taskrow->customdata);
+        $this->assertSame((int)$previousyearcourse->id, (int)$payload->templatecourseid);
+        $this->assertNotSame((int)$mastertemplate->id, (int)$payload->templatecourseid);
+    }
+
+    /**
      * Build a fully wired sync service using a fake endpoint.
      *
      * @param lehrgaenge_endpoint_interface $endpoint

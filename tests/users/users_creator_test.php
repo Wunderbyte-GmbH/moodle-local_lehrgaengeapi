@@ -81,4 +81,71 @@ final class users_creator_test extends \advanced_testcase {
         $this->assertNotNull($map);
         $this->assertSame((int)$existinguser->id, (int)$map->userid);
     }
+
+    /**
+     * A participant created without an initialId (e.g. legacy/archival API data) is
+     * recognised again via their stable external id on a later import, and has their
+     * username upgraded once the API starts supplying an initialId for them.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_user_created_without_initialid_is_updated_once_initialid_appears(): void {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        $firstimport = [[
+            'id' => 'P-100',
+            'initialId' => '',
+            'vorname' => 'Jonas',
+            'nachname' => 'Bleuel',
+            'emails' => [
+                'emailBusiness' => 'jonas.bleuel@example.invalid',
+            ],
+        ]];
+
+        $creator = new users_creator();
+        $summary1 = $creator->create($firstimport);
+
+        $this->assertSame(1, $summary1['created']);
+        $this->assertSame(0, $summary1['existing']);
+        $this->assertSame(0, $summary1['skipped']);
+
+        $user = $DB->get_record('user', ['idnumber' => 'P-100', 'deleted' => 0], '*', MUST_EXIST);
+        $this->assertNotSame('INIT-100', $user->username);
+        $originaluserid = (int)$user->id;
+
+        $repo = new usermap_repository();
+        $map = $repo->get_by_externalid('P-100');
+        $this->assertNotNull($map);
+        $this->assertSame($originaluserid, (int)$map->userid);
+
+        // Later import: same participant (same external id), API now provides an initialId.
+        $secondimport = [[
+            'id' => 'P-100',
+            'initialId' => 'INIT-100',
+            'vorname' => 'Jonas',
+            'nachname' => 'Bleuel',
+            'emails' => [
+                'emailBusiness' => 'jonas.bleuel@example.invalid',
+            ],
+        ]];
+
+        $summary2 = $creator->create($secondimport);
+
+        $this->assertSame(0, $summary2['created']);
+        $this->assertSame(1, $summary2['existing']);
+        $this->assertSame(0, $summary2['skipped']);
+        $this->assertSame(
+            1,
+            $DB->count_records('user', ['idnumber' => 'P-100', 'deleted' => 0]),
+            'No duplicate user should have been created.'
+        );
+
+        $updateduser = $DB->get_record('user', ['id' => $originaluserid], '*', MUST_EXIST);
+        $this->assertSame('INIT-100', $updateduser->username);
+
+        $mapafter = $repo->get_by_externalid('P-100');
+        $this->assertSame($originaluserid, (int)$mapafter->userid, 'Mapping should still point at the same user.');
+    }
 }
