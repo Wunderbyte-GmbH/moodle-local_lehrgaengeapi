@@ -161,7 +161,7 @@ final class import_run_repository_test extends \advanced_testcase {
 
         $repo = new import_run_repository();
 
-        // get_recent() is keyed by record id (like all $DB->get_records() calls), so
+        // Get_recent() is keyed by record id (like all $DB->get_records() calls), so
         // compare values only, not keys.
         $all = $repo->get_recent(10);
         $this->assertCount(3, $all);

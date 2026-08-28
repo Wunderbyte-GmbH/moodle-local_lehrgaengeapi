@@ -107,13 +107,14 @@ final class manual_import_lehrgaenge_task_test extends \advanced_testcase {
     }
 
     /**
-     * A genuine sync failure is logged as an error run and notified, but NOT rethrown
-     * (unlike the scheduled task) - a failed one-shot import should not be silently
-     * retried later by Moodle's adhoc task retry mechanism.
+     * A tenant-level sync failure (e.g. its API unreachable) is NOT a fatal error for the
+     * whole run - it is recorded per-tenant in the run summary, but the run itself still
+     * finishes as a success and notifies the user, since other tenants may have imported
+     * fine.
      *
      * @covers \local_lehrgaengeapi\task\manual_import_lehrgaenge_task::execute
      */
-    public function test_execute_error_path_logs_run_and_does_not_rethrow(): void {
+    public function test_execute_tenant_failure_is_recorded_in_summary_and_does_not_rethrow(): void {
         global $DB;
         $this->resetAfterTest(true);
 
@@ -134,7 +135,11 @@ final class manual_import_lehrgaenge_task_test extends \advanced_testcase {
 
         $this->assertSame(1, $DB->count_records('local_lehrgaengeapi_import_run'));
         $run = $DB->get_record('local_lehrgaengeapi_import_run', [], '*', MUST_EXIST);
-        $this->assertSame(import_run_repository::STATUS_ERROR, $run->status);
+        $this->assertSame(import_run_repository::STATUS_SUCCESS, $run->status);
+
+        $summary = import_run_repository::decode_summary($run);
+        $this->assertArrayHasKey('HP', $summary);
+        $this->assertNotEmpty($summary['HP']['error'] ?? '', 'Tenant failure should be recorded in the summary.');
 
         $messages = $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete');
         $this->assertCount(1, $messages);

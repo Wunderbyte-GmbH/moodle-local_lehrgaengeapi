@@ -304,7 +304,7 @@ final class lehrgaenge_sync_service_test extends \advanced_testcase {
         }
         $this->resetAfterTest(true);
 
-        // sync() always resolves the HLFS/tenant company before looking at items, so
+        // Sync() always resolves the HLFS/tenant company before looking at items, so
         // IOMAD is required even with an empty items list.
         $endpoint = $this->fake_endpoint([]);
 

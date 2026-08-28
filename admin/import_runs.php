@@ -95,10 +95,11 @@ if ($id) {
                 (int)($tenantresult['total'] ?? 0),
             ];
             foreach ($tenantfailed as $failure) {
-                $failedentries[] = html_writer::tag('li', s($tenantabbr) . ' – ' . get_string('failedentry', 'local_lehrgaengeapi', (object)[
+                $failedentrystring = get_string('failedentry', 'local_lehrgaengeapi', (object)[
                     'id' => $failure['id'] ?? '?',
                     'error' => $failure['error'] ?? '',
-                ]));
+                ]);
+                $failedentries[] = html_writer::tag('li', s($tenantabbr) . ' – ' . $failedentrystring);
             }
         }
         echo html_writer::table($tenanttable);
