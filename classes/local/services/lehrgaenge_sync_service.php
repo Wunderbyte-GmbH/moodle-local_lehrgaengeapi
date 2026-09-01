@@ -146,7 +146,7 @@ final class lehrgaenge_sync_service {
                 continue;
             }
 
-            // Check if course exists by naming convention (current or CURRENTYEAR_alt).
+            // Check if course exists by naming convention (current year, or the year-less _alt course).
             $identifications = $this->set_course_identifications($item, $currentcompany);
             $shortname = implode('-', $identifications);
             $existing = $DB->get_record('course', ['shortname' => $shortname], '*', IGNORE_MISSING);
@@ -179,7 +179,8 @@ final class lehrgaenge_sync_service {
                 if ($ishlfs) {
                     $unfoundhlfscourses[$externalid] = [
                         'externalid' => $externalid,
-                        'shortname' => $shortname,
+                        'sourceshortname' => $shortname,
+                        'shortname' => $this->resolve_alt_shortname_for_past_course($identifications) ?? $shortname,
                         'bezeichnung' => (string)($item['bezeichnung'] ?? ''),
                         'kurzbezeichnung' => (string)($item['kurzbezeichnung'] ?? ''),
                         'ort' => $item['ort'],
@@ -287,7 +288,9 @@ final class lehrgaenge_sync_service {
     }
 
     /**
-     * Resolve CURRENTYEAR_alt shortname if the source course year is in the past.
+     * Resolve the year-less <TENANT>-<NAME>_alt shortname if the source course year is in the past.
+     *
+     * Must stay in sync with course_creator::resolve_target_shortname().
      *
      * @param array $identifications
      * @return string|null
@@ -305,7 +308,6 @@ final class lehrgaenge_sync_service {
         return implode('-', [
             $identifications['tenant'],
             $identifications['coursename'],
-            date('y'),
         ]) . '_alt';
     }
 

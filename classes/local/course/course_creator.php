@@ -54,6 +54,12 @@ final class course_creator {
             $templatecourse = $this->get_local_template_course($identifications['coursename']);
         }
 
+        // Last resort for back-dated Lehrgaenge: this year's course is the closest match
+        // for building the _alt completion course.
+        if (empty($templatecourse) && $this->is_past_year((string)($identifications['year'] ?? ''))) {
+            $templatecourse = $this->get_current_year_course($identifications);
+        }
+
         if (empty($templatecourse)) {
             return null;
         }
@@ -94,9 +100,29 @@ final class course_creator {
     }
 
     /**
+     * Get this year's course for the same tenant and Lehrgang type.
+     *
+     * @param array $identifications
+     * @return \stdClass|null
+     */
+    private function get_current_year_course(array $identifications): ?\stdClass {
+        global $DB;
+
+        $shortname = implode('-', [
+            $identifications['tenant'],
+            $identifications['coursename'],
+            date('y'),
+        ]);
+
+        return $DB->get_record('course', ['shortname' => $shortname]) ?: null;
+    }
+
+
+    /**
      * Resolve the shortname that should be created for a given Lehrgang.
      *
-     * If the Lehrgang year is in the past, we create it under CURRENTYEAR_alt.
+     * If the Lehrgang year is in the past, we create it under a year-less <TENANT>-<NAME>_alt
+     * course, so that back-dated Lehrgaenge of every past year share one completion course.
      *
      * @param array $identifications
      * @param string $baseshortname
@@ -107,11 +133,9 @@ final class course_creator {
             return $baseshortname;
         }
 
-        $currentyear = date('y');
         return implode('-', [
             $identifications['tenant'],
             $identifications['coursename'],
-            $currentyear,
         ]) . '_alt';
     }
 

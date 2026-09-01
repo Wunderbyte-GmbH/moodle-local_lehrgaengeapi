@@ -49,6 +49,7 @@ $string['colkurzbezeichnung'] = 'Kurzbezeichnung';
 $string['colnoop'] = 'Keine Aktion';
 $string['colort'] = 'Ort';
 $string['colshortname'] = 'Geplanter Kurzname';
+$string['colsourceshortname'] = 'Ursprünglicher Kurzname';
 $string['colskipped'] = 'Übersprungen';
 $string['colstarted'] = 'Gestartet am';
 $string['colstatus'] = 'Status';

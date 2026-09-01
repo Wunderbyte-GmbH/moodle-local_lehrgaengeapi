@@ -112,6 +112,7 @@ if ($id) {
         $unfoundtable->head = [
             get_string('coltenant', 'local_lehrgaengeapi'),
             get_string('colexternalid', 'local_lehrgaengeapi'),
+            get_string('colsourceshortname', 'local_lehrgaengeapi'),
             get_string('colshortname', 'local_lehrgaengeapi'),
             get_string('colkurzbezeichnung', 'local_lehrgaengeapi'),
             get_string('colbezeichnung', 'local_lehrgaengeapi'),
@@ -123,6 +124,7 @@ if ($id) {
                     s($tenantabbr),
                     s((string)($entry['externalid'] ?? '')),
                     s((string)($entry['shortname'] ?? '')),
+                    s((string)($entry['sourceshortname'] ?? '')),
                     s((string)($entry['kurzbezeichnung'] ?? '')),
                     s((string)($entry['bezeichnung'] ?? '')),
                     s((string)($entry['ort'] ?? '')),
