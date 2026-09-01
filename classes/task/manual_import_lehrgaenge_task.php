@@ -95,6 +95,7 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
                         'total' => 0,
                         'failed' => [],
                         'userreport' => [],
+                        'unfoundhlfscourses' => [],
                         'error' => $tenantdetail,
                     ];
                 }

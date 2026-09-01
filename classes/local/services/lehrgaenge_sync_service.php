@@ -96,7 +96,7 @@ final class lehrgaenge_sync_service {
      * @param array $tenant
      * @param array<string,mixed>|string|null $searchcriteria Optional filter,
      *        e.g. ['lehrgangVon' => 'YYYY-01-01', 'lehrgangBis' => 'YYYY-12-31'] for a manual year import.
-     * @return array{created:int,skipped:int,total:int,failed:array,userreport:array}
+     * @return array{created:int,skipped:int,total:int,failed:array,userreport:array,unfoundhlfscourses:array}
      * @throws \Throwable
      */
     public function sync($tenant, $searchcriteria = null): array {
@@ -108,6 +108,7 @@ final class lehrgaenge_sync_service {
                 'total' => 0,
                 'failed' => [],
                 'userreport' => [],
+                'unfoundhlfscourses' => []
             ];
         }
         $items = $this->endpoint->list($tenant, $searchcriteria);
@@ -124,21 +125,17 @@ final class lehrgaenge_sync_service {
         $hlfscompany = $this->get_main_company();
         $company = $this->tenantcreator->get_tenant($tenant);
         $userreport = [];
+        $unfoundhlfscourses = [];
         foreach ($items as $item) {
-            if (
-                !empty($item['ort']) &&
-                $item['ort'] !== '' &&
-                strpos($item['ort'], 'HLFS') === 0 &&
-                $hlfscompany
-            ) {
-                $currentcompany = $hlfscompany;
-            } else {
-                $currentcompany = $company;
+            if (!is_array($item)) {
+                $skipped++;
+                continue;
             }
-            if (
-                !is_array($item) ||
-                !$currentcompany
-            ) {
+            $ishlfs = !empty($item['ort'])
+                && strpos((string)$item['ort'], 'HLFS') === 0
+                && $hlfscompany;
+            $currentcompany = $ishlfs ? $hlfscompany : $company;
+            if (!$currentcompany) {
                 $skipped++;
                 continue;
             }
@@ -179,6 +176,15 @@ final class lehrgaenge_sync_service {
 
             $course = $this->coursecreator->create($currentcompany, $item, $identifications);
             if (!$course) {
+                if ($ishlfs) {
+                    $unfoundhlfscourses[$externalid] = [
+                        'externalid' => $externalid,
+                        'shortname' => $shortname,
+                        'bezeichnung' => (string)($item['bezeichnung'] ?? ''),
+                        'kurzbezeichnung' => (string)($item['kurzbezeichnung'] ?? ''),
+                        'ort' => $item['ort'],
+                    ];
+                }
                 $skipped++;
                 continue;
             }
@@ -203,6 +209,7 @@ final class lehrgaenge_sync_service {
             'total' => $total,
             'failed' => $failed,
             'userreport' => $userreport,
+            'unfoundhlfscourses' => $unfoundhlfscourses
         ];
     }
 

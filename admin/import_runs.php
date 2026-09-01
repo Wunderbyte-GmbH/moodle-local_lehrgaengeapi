@@ -107,6 +107,41 @@ if ($id) {
             echo $OUTPUT->heading(get_string('failedlehrgaenge', 'local_lehrgaengeapi'), 4);
             echo html_writer::tag('ul', implode('', $failedentries));
         }
+        $unfoundtable = new html_table();
+        $unfoundtable->attributes['class'] = 'generaltable';
+        $unfoundtable->head = [
+            get_string('coltenant', 'local_lehrgaengeapi'),
+            get_string('colexternalid', 'local_lehrgaengeapi'),
+            get_string('colshortname', 'local_lehrgaengeapi'),
+            get_string('colkurzbezeichnung', 'local_lehrgaengeapi'),
+            get_string('colbezeichnung', 'local_lehrgaengeapi'),
+            get_string('colort', 'local_lehrgaengeapi'),
+        ];
+        foreach ($decoded as $tenantabbr => $tenantresult) {
+            foreach (($tenantresult['unfoundhlfscourses'] ?? []) as $entry) {
+                $unfoundtable->data[] = [
+                    s($tenantabbr),
+                    s((string)($entry['externalid'] ?? '')),
+                    s((string)($entry['shortname'] ?? '')),
+                    s((string)($entry['kurzbezeichnung'] ?? '')),
+                    s((string)($entry['bezeichnung'] ?? '')),
+                    s((string)($entry['ort'] ?? '')),
+                ];
+            }
+        }
+        if ($unfoundtable->data) {
+            echo $OUTPUT->notification(
+                get_string('unfoundhlfscoursesinfo', 'local_lehrgaengeapi', count($unfoundtable->data)),
+                'warning'
+            );
+            echo html_writer::tag(
+                'details',
+                html_writer::tag('summary', get_string('unfoundhlfscourses', 'local_lehrgaengeapi'))
+                . html_writer::table($unfoundtable),
+                ['class' => 'mt-3']
+            );
+        }
+
         $tenanterrors = [];
         foreach ($decoded as $tenantabbr => $tenantresult) {
             if (!empty($tenantresult['error'])) {
