@@ -83,7 +83,10 @@ final class course_creator {
             $data->fullname .= ' ' . get_string('completion', 'local_lehrgaengeapi');
         }
         $data->shortname = $shortname;
-        $data->idnumber  = $item['id'];
+        // A completion course collects the participants of many past Lehrgaenge, so no
+        // single Florix id belongs in its idnumber - and claiming one there makes
+        // create_course() reject every later Lehrgang that reuses the course.
+        $data->idnumber  = str_ends_with($shortname, '_alt') ? '' : $item['id'];
         $data->visible   = 1;
 
         if ($DB->get_record('course', ['shortname' => $shortname])) {

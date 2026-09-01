@@ -155,7 +155,20 @@ final class lehrgaenge_sync_service {
                 $altshortname = $this->resolve_alt_shortname_for_past_course($identifications);
                 if ($altshortname !== null) {
                     $existing = $DB->get_record('course', ['shortname' => $altshortname], '*', IGNORE_MISSING);
+                    if (!$existing) {
+                        // Completion courses created before the year was dropped from the
+                        // naming convention still carry it (e.g. TENANT-NAME-26_alt). They
+                        // stay in use, so participants go there instead of into a duplicate.
+                        $existing = $this->find_legacy_alt_course($identifications);
+                    }
                 }
+            }
+
+            if (!$existing) {
+                // A course for this Lehrgang may exist under a name none of the conventions
+                // above produce. Creating another one would fail on the taken idnumber and
+                // abort the whole tenant, so reuse it instead.
+                $existing = $DB->get_record('course', ['idnumber' => $externalid], '*', IGNORE_MULTIPLE);
             }
 
             if ($existing) {
@@ -174,7 +187,16 @@ final class lehrgaenge_sync_service {
                 continue;
             }
 
-            $course = $this->coursecreator->create($currentcompany, $item, $identifications);
+            try {
+                $course = $this->coursecreator->create($currentcompany, $item, $identifications);
+            } catch (\Throwable $e) {
+                // A single Lehrgang that cannot be created must never abort the tenant -
+                // the remaining Lehrgaenge are still processed and the counters survive.
+                $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
+                $skipped++;
+                continue;
+            }
+
             if (!$course) {
                 if ($ishlfs) {
                     $unfoundhlfscourses[$externalid] = [
@@ -285,6 +307,29 @@ final class lehrgaenge_sync_service {
         }
 
         return $item;
+    }
+
+    /**
+     * Find a completion course created under the legacy <TENANT>-<NAME>-<YY>_alt convention.
+     *
+     * Those courses stay in use, so a past-year Lehrgang is enrolled into the existing one
+     * instead of a second _alt course being created alongside it.
+     *
+     * @param array $identifications
+     * @return stdClass|null
+     */
+    private function find_legacy_alt_course(array $identifications): ?stdClass {
+        global $DB;
+
+        $base = implode('-', [
+            $identifications['tenant'],
+            $identifications['coursename'],
+        ]);
+
+        $select = $DB->sql_like('shortname', ':shortname');
+        $params = ['shortname' => $DB->sql_like_escape($base . '-') . '%' . $DB->sql_like_escape('_alt')];
+
+        return $DB->get_record_select('course', $select, $params, '*', IGNORE_MULTIPLE) ?: null;
     }
 
     /**

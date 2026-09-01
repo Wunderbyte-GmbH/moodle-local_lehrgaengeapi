@@ -54,6 +54,7 @@ final class users_creator_test extends \advanced_testcase {
         ]);
 
         $participants = [[
+            'id' => 'P-00004561',
             'initialId' => 'P-00004561',
             'vorname' => 'Changed',
             'nachname' => 'Name',

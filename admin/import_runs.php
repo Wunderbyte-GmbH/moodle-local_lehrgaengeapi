@@ -123,8 +123,8 @@ if ($id) {
                 $unfoundtable->data[] = [
                     s($tenantabbr),
                     s((string)($entry['externalid'] ?? '')),
-                    s((string)($entry['shortname'] ?? '')),
                     s((string)($entry['sourceshortname'] ?? '')),
+                    s((string)($entry['shortname'] ?? '')),
                     s((string)($entry['kurzbezeichnung'] ?? '')),
                     s((string)($entry['bezeichnung'] ?? '')),
                     s((string)($entry['ort'] ?? '')),

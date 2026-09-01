@@ -75,7 +75,11 @@ final class copy_course_content_task_test extends \advanced_testcase {
             'newcourseid'      => (int)$newcourse->id,
             'adminid'          => (int)get_admin()->id,
         ]);
+        // The task writes progress via mtrace(); swallow it so PHPUnit does not
+        // flag the test as risky for unexpected output.
+        ob_start();
         $task->execute();
+        ob_end_clean();
 
         $modulesafter = $DB->count_records('course_modules', ['course' => $newcourse->id]);
         $this->assertGreaterThan($modulesbefore, $modulesafter, 'Modules should have been copied to the new course.');
@@ -111,7 +115,11 @@ final class copy_course_content_task_test extends \advanced_testcase {
         ]);
 
         // Must not throw.
+        // The task writes progress via mtrace(); swallow it so PHPUnit does not
+        // flag the test as risky for unexpected output.
+        ob_start();
         $task->execute();
+        ob_end_clean();
         $this->assertTrue(true);
     }
 
@@ -145,7 +153,11 @@ final class copy_course_content_task_test extends \advanced_testcase {
         ]);
 
         // Must not throw.
+        // The task writes progress via mtrace(); swallow it so PHPUnit does not
+        // flag the test as risky for unexpected output.
+        ob_start();
         $task->execute();
+        ob_end_clean();
         $this->assertTrue(true);
     }
 }

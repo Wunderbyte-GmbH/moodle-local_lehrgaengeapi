@@ -108,12 +108,14 @@ final class sync_lehrgaenge_task_test extends \advanced_testcase {
     }
 
     /**
-     * A genuine sync failure (here: connection failure to an unreachable configured
-     * baseurl) is logged as an error run and rethrown, so faildelay still applies.
+     * A sync failure for a single tenant (here: connection failure to an unreachable
+     * configured baseurl) must not abort the whole run. It is recorded as that tenant's
+     * 'error' entry in the summary, the remaining tenants are still processed, and the
+     * run itself is logged as successful - mirroring manual_import_lehrgaenge_task.
      *
      * @covers \local_lehrgaengeapi\task\sync_lehrgaenge_task::execute
      */
-    public function test_execute_logs_error_run_and_rethrows_on_failure(): void {
+    public function test_execute_records_tenant_failure_and_completes_run(): void {
         global $DB;
         $this->resetAfterTest(true);
 
@@ -125,20 +127,30 @@ final class sync_lehrgaenge_task_test extends \advanced_testcase {
 
         $task = new sync_lehrgaenge_task();
 
-        $threw = false;
         ob_start();
-        try {
-            $task->execute();
-        } catch (\Throwable $e) {
-            $threw = true;
-        }
+        $task->execute();
         ob_end_clean();
-        $this->assertTrue($threw, 'execute() should rethrow the underlying failure.');
 
         $this->assertSame(1, $DB->count_records('local_lehrgaengeapi_import_run'));
         $run = $DB->get_record('local_lehrgaengeapi_import_run', [], '*', MUST_EXIST);
-        $this->assertSame(import_run_repository::STATUS_ERROR, $run->status);
+        $this->assertSame(import_run_repository::STATUS_SUCCESS, $run->status);
+
         $decoded = import_run_repository::decode_summary($run);
-        $this->assertArrayHasKey('error', $decoded);
+        $this->assertArrayNotHasKey('error', $decoded, 'A single tenant failure must not abort the run.');
+        $this->assertNotEmpty(
+            $decoded['HP']['error'] ?? '',
+            'The failing tenant should be recorded in its own summary entry.'
+        );
+
+        // Every tenant entry keeps the full summary shape, so the report page can render
+        // them all without special-casing the failed one.
+        foreach ($decoded as $tenantsummary) {
+            $this->assertArrayHasKey('created', $tenantsummary);
+            $this->assertArrayHasKey('skipped', $tenantsummary);
+            $this->assertArrayHasKey('total', $tenantsummary);
+            $this->assertArrayHasKey('failed', $tenantsummary);
+            $this->assertArrayHasKey('userreport', $tenantsummary);
+            $this->assertArrayHasKey('unfoundhlfscourses', $tenantsummary);
+        }
     }
 }

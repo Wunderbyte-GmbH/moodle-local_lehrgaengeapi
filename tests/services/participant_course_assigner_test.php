@@ -57,6 +57,7 @@ final class participant_course_assigner_test extends \advanced_testcase {
         $assigner = new participant_course_assigner();
         $report = $assigner->assign([
             [
+                'id' => 'INIT-100',
                 'initialId' => 'INIT-100',
                 'status' => 'S050_TEILGENOMMEN_KREIS',
             ],
@@ -105,6 +106,7 @@ final class participant_course_assigner_test extends \advanced_testcase {
         $assigner = new participant_course_assigner();
         $report = $assigner->assign([
             [
+                'id' => 'INIT-200',
                 'initialId' => 'INIT-200',
                 'status' => 'S100_STORNIERT_KREIS',
             ],
