@@ -108,7 +108,7 @@ final class lehrgaenge_sync_service {
                 'total' => 0,
                 'failed' => [],
                 'userreport' => [],
-                'unfoundhlfscourses' => []
+                'unfoundhlfscourses' => [],
             ];
         }
         $items = $this->endpoint->list($tenant, $searchcriteria);
@@ -209,7 +209,7 @@ final class lehrgaenge_sync_service {
             'total' => $total,
             'failed' => $failed,
             'userreport' => $userreport,
-            'unfoundhlfscourses' => $unfoundhlfscourses
+            'unfoundhlfscourses' => $unfoundhlfscourses,
         ];
     }
 

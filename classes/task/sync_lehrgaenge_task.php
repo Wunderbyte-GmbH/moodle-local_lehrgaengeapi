@@ -75,8 +75,34 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
             $allapiendpoints = tenants::get_all_with_keys();
             $summary = [];
             foreach ($allapiendpoints as $apiendpoint) {
-                $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
-                $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint);
+                try {
+                    $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
+                    $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint);
+                } catch (api_rate_limited_exception | api_unauthorized_exception $e) {
+                    // Not tenant-specific: retrying the remaining tenants would just hammer
+                    // the API. Abort so the outer handler records it and faildelay applies.
+                    throw $e;
+                } catch (\Throwable $e) {
+                    // A single tenant failing (e.g. HTTP 400 for an organisation the remote
+                    // side does not know) must not abort the remaining tenants - the failure
+                    // is recorded in the summary and the run continues.
+                    $tenantdetail = $e->getMessage();
+                    if ($e instanceof api_exception && $e->get_response_body() !== '') {
+                        $tenantdetail .= ' | Response: ' . $e->get_response_body();
+                    }
+                    mtrace('local_lehrgaengeapi: tenant ' . $apiendpoint['abbr']
+                        . ' failed: ' . $tenantdetail);
+                    $summary[$apiendpoint['abbr']] = [
+                        'created' => 0,
+                        'skipped' => 0,
+                        'total' => 0,
+                        'failed' => [],
+                        'userreport' => [],
+                        'unfoundhlfscourses' => [],
+                        'error' => $tenantdetail,
+                    ];
+                }
+                $runs->update_progress($run->id, $summary);
             }
             mtrace('local_lehrgaengeapi: lehrgaenge sync summary: ' . json_encode($summary));
             $runs->mark_success($run->id, $summary);
