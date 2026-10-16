@@ -81,7 +81,7 @@ participants were synced.
 | Symptom | Explanation |
 |---------|-------------|
 | Everything counted under *Assignment skipped* | The course has no manual enrolment instance, or the `manual` plugin is disabled site-wide. |
-| Large *No action* count | The statuses in the payload match none of the mapping rules. `ANGEMELDET` and `BESTANDEN` are genuinely no-ops — only *Einberufung* enrols and only `TEILGENOMMEN` completes. See [Participants](../participants/README.md#3-status-to-action-mapping). |
+| Large *No action* count | The statuses in the payload match none of the mapping rules. `ANGEMELDET` and `BESTANDEN` are genuinely no-ops — only *Einberufung* enrols and only `TEILGENOMMEN` completes. See [Participants](../participants/README.md#4-status-to-action-mapping). |
 | Users appear with `@invalid.local` addresses | The payload had neither a business nor a private email. |
 | Duplicate-looking accounts | Matching is by mapping row, then `idnumber`, then `username`. A person whose external id changed gets a second account. |
 | An existing user's **username changed** after an import | Intended repair behaviour: when a matched user's username differs from the participant's `initialId`, username and password are rewritten. |

@@ -92,6 +92,7 @@ final class participants_sync_service {
                     'existing' => 0,
                     'skipped' => 0,
                     'total' => 0,
+                    'ausbildungen_updated' => 0,
                 ],
                 'assignments' => [
                     'created' => 0,

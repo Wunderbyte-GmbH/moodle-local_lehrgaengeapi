@@ -25,6 +25,7 @@
 namespace local_lehrgaengeapi\users;
 
 use local_lehrgaengeapi\local\repository\usermap_repository;
+use local_lehrgaengeapi\local\users\ausbildungen_profile_field;
 use local_lehrgaengeapi\local\users\users_creator;
 
 /**
@@ -148,5 +149,152 @@ final class users_creator_test extends \advanced_testcase {
 
         $mapafter = $repo->get_by_externalid('P-100');
         $this->assertSame($originaluserid, (int)$mapafter->userid, 'Mapping should still point at the same user.');
+    }
+
+    /**
+     * Read the stored "ausbildungen" profile field value of a user.
+     *
+     * @param int $userid
+     * @return string|null Null if the user has no data row for the field.
+     */
+    private function stored_ausbildungen(int $userid): ?string {
+        global $DB;
+        $data = $DB->get_field('user_info_data', 'data', [
+            'userid' => $userid,
+            'fieldid' => ausbildungen_profile_field::get_fieldid(),
+        ]);
+        return $data === false ? null : (string)$data;
+    }
+
+    /**
+     * Build a participant payload with the given trainings.
+     *
+     * @param string $id External participant id.
+     * @param array $ausbildungen Short names of the trainings.
+     * @return array
+     */
+    private function participant_with_ausbildungen(string $id, array $ausbildungen): array {
+        return [
+            'id' => $id,
+            'initialId' => 'init-' . strtolower($id), // Moodle usernames must be lower case.
+            'vorname' => 'Test',
+            'nachname' => 'Person',
+            'emails' => ['emailBusiness' => $id . '@example.invalid'],
+            'ausbildungen' => array_map(static fn($kurz) => [
+                'bezeichnung' => 'Lang ' . $kurz,
+                'kurzBezeichnung' => $kurz,
+                'von' => '2024-01-01',
+                'bis' => '2024-01-02',
+                'status' => 'BESTANDEN',
+            ], $ausbildungen),
+        ];
+    }
+
+    /**
+     * A newly created user gets the trainings saved in the profile field, also when
+     * the list is empty.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_new_user_gets_ausbildungen_saved(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+
+        $summary = (new users_creator())->create([
+            $this->participant_with_ausbildungen('P-1', ['B-II', 'F-Atr']),
+            $this->participant_with_ausbildungen('P-2', []),
+        ]);
+
+        $this->assertSame(2, $summary['created']);
+        $this->assertSame(2, $summary['ausbildungen_updated']);
+
+        $user1 = $DB->get_record('user', ['idnumber' => 'P-1'], '*', MUST_EXIST);
+        $decoded = json_decode($this->stored_ausbildungen((int)$user1->id), true);
+        $this->assertSame(['B-II', 'F-Atr'], array_column($decoded, 'kurzBezeichnung'));
+
+        $user2 = $DB->get_record('user', ['idnumber' => 'P-2'], '*', MUST_EXIST);
+        $this->assertSame('', $this->stored_ausbildungen((int)$user2->id));
+    }
+
+    /**
+     * A user already known via the mapping table gets changed trainings on the next sync,
+     * an unchanged list is not counted as an update.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_mapped_user_gets_ausbildungen_updated_on_next_sync(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+        $creator = new users_creator();
+
+        $creator->create([$this->participant_with_ausbildungen('P-1', ['B-II'])]);
+        $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'P-1'], MUST_EXIST);
+
+        $unchanged = $creator->create([$this->participant_with_ausbildungen('P-1', ['B-II'])]);
+        $this->assertSame(1, $unchanged['existing']);
+        $this->assertSame(0, $unchanged['ausbildungen_updated']);
+
+        $changed = $creator->create([$this->participant_with_ausbildungen('P-1', ['B-II', 'B-III'])]);
+        $this->assertSame(1, $changed['existing']);
+        $this->assertSame(1, $changed['ausbildungen_updated']);
+        $decoded = json_decode($this->stored_ausbildungen($userid), true);
+        $this->assertSame(['B-II', 'B-III'], array_column($decoded, 'kurzBezeichnung'));
+    }
+
+    /**
+     * An existing Moodle user found by idnumber (no mapping yet) gets the trainings too.
+     * This path used to end right after the mapping was stored.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_user_found_by_idnumber_gets_ausbildungen_saved(): void {
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+        $existing = $this->getDataGenerator()->create_user(['idnumber' => 'P-7', 'username' => 'someone-else']);
+
+        $summary = (new users_creator())->create([$this->participant_with_ausbildungen('P-7', ['F-Ma'])]);
+
+        $this->assertSame(1, $summary['existing']);
+        $this->assertSame(1, $summary['ausbildungen_updated']);
+        $decoded = json_decode($this->stored_ausbildungen((int)$existing->id), true);
+        $this->assertSame(['F-Ma'], array_column($decoded, 'kurzBezeichnung'));
+    }
+
+    /**
+     * An existing Moodle user found by username (no mapping, other idnumber) gets the
+     * trainings too.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_user_found_by_username_gets_ausbildungen_saved(): void {
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+        $existing = $this->getDataGenerator()->create_user(['username' => 'p-8', 'idnumber' => 'other']);
+
+        $summary = (new users_creator())->create([$this->participant_with_ausbildungen('p-8', ['F-Atr'])]);
+
+        $this->assertSame(1, $summary['existing']);
+        $this->assertSame(1, $summary['ausbildungen_updated']);
+        $decoded = json_decode($this->stored_ausbildungen((int)$existing->id), true);
+        $this->assertSame(['F-Atr'], array_column($decoded, 'kurzBezeichnung'));
+    }
+
+    /**
+     * A deleted profile field must not break the user import.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_missing_profile_field_does_not_break_user_creation(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $DB->delete_records('user_info_field', ['shortname' => ausbildungen_profile_field::SHORTNAME]);
+
+        $this->expectOutputRegex('/profile field "ausbildungen" not found/');
+        $summary = (new users_creator())->create([$this->participant_with_ausbildungen('P-9', ['B-II'])]);
+
+        $this->assertSame(1, $summary['created']);
+        $this->assertSame(0, $summary['ausbildungen_updated']);
     }
 }

@@ -126,7 +126,7 @@ processed. This section only ever appears for manual imports — the scheduled t
 ### Participant details per course
 
 A collapsible, scrollable table with one row per course: the twelve user and assignment counters described in
-[Participants](../participants/README.md#7-reading-the-counters). The course column links to the Moodle course and
+[Participants](../participants/README.md#8-reading-the-counters). The course column links to the Moodle course and
 is labelled with the external Lehrgang id.
 
 ### Raw data (JSON)

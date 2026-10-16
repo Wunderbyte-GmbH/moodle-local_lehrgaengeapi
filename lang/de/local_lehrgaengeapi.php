@@ -41,6 +41,7 @@ $string['certificationpathdesc'] = 'Absoluter Pfad zu einem Verzeichnis mit Clie
 $string['colalreadyenrolled'] = 'Bereits eingeschrieben';
 $string['colalreadyunenrolled'] = 'Bereits ausgeschrieben';
 $string['colassignmentskipped'] = 'Zuordnung übersprungen';
+$string['colausbildungenupdated'] = 'Ausbildungen aktualisiert';
 $string['colbezeichnung'] = 'Bezeichnung';
 $string['colcompleted'] = 'Abgeschlossen';
 $string['colcourse'] = 'Kurs';

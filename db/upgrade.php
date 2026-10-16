@@ -120,5 +120,13 @@ function xmldb_local_lehrgaengeapi_upgrade(int $oldversion): bool {
 
         upgrade_plugin_savepoint(true, 2026081700, 'local', 'lehrgaengeapi');
     }
+
+    // 2026101600: Add custom profile field for the Ausbildungen of a participant.
+    if ($oldversion < 2026101600) {
+        \local_lehrgaengeapi\local\users\ausbildungen_profile_field::ensure_exists();
+
+        upgrade_plugin_savepoint(true, 2026101600, 'local', 'lehrgaengeapi');
+    }
+
     return true;
 }

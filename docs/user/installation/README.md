@@ -122,6 +122,12 @@ Both admin pages are registered as `admin_externalpage` entries under *Local plu
 `\local_lehrgaengeapi\task\sync_lehrgaenge_task`, by default every Sunday at 03:00 — see
 [Scheduled tasks](../scheduled_tasks/README.md).
 
+### Custom profile field
+
+`ausbildungen` (Textarea, category *Lehrgaenge*, locked, not visible) — holds the trainings of a participant as JSON,
+see [Participants](../participants/README.md#3-ausbildungen-in-the-user-profile). It is created on installation and
+on upgrade.
+
 ### Message provider
 
 `local_lehrgaengeapi/importcomplete` — notifies the user who triggered a manual import once it finishes, and the
@@ -138,8 +144,10 @@ Upgrades are handled by `db/upgrade.php`:
 |---------|------|
 | `2026021700` | Creates `local_lehrgaengeapi_coursemap` and `local_lehrgaengeapi_usermap` with their indexes |
 | `2026081700` | Creates `local_lehrgaengeapi_import_run` with its `timestarted` index |
+| `2026101600` | Creates the custom profile field `ausbildungen` (skipped if it already exists) |
 
-Every step is guarded by `table_exists()` / `index_exists()`, so re-running an upgrade is safe.
+Every step is guarded by `table_exists()` / `index_exists()` or, for the profile field, by a lookup of its shortname, so
+re-running an upgrade is safe.
 
 Run upgrades the usual way:
 
@@ -154,7 +162,8 @@ php admin/cli/upgrade.php
 Uninstall through *Site administration → Plugins → Plugins overview*. Moodle drops the three plugin tables and the
 plugin's configuration.
 
-**Nothing else is removed.** Courses, users, enrolments, groups and course-completion records created by the plugin
+**Nothing else is removed.** The custom profile field `ausbildungen` and the values saved in it stay as well. Courses,
+users, enrolments, groups and course-completion records created by the plugin
 stay exactly as they are — they are ordinary Moodle objects. If you reinstall, the mapping tables start empty, and
 the sync will re-link existing courses by shortname and existing users by `idnumber` / `username` rather than
 duplicating them.

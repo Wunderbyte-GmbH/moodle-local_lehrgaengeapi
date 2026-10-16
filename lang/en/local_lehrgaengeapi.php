@@ -41,6 +41,7 @@ $string['certificationpathdesc'] = 'Absolute path to a directory containing clie
 $string['colalreadyenrolled'] = 'Already enrolled';
 $string['colalreadyunenrolled'] = 'Already unenrolled';
 $string['colassignmentskipped'] = 'Assignment skipped';
+$string['colausbildungenupdated'] = 'Trainings updated';
 $string['colbezeichnung'] = 'Designation';
 $string['colcompleted'] = 'Completed';
 $string['colcourse'] = 'Course';

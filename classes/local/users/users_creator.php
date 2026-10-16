@@ -38,12 +38,16 @@ final class users_creator {
     /** @var usermap_repository */
     private usermap_repository $usermap;
 
+    /** @var ausbildungen_writer */
+    private ausbildungen_writer $ausbildungen;
+
     /**
      * Constructor.
      * @return void
      */
     public function __construct() {
         $this->usermap = new usermap_repository();
+        $this->ausbildungen = new ausbildungen_writer();
     }
 
     /**
@@ -58,6 +62,7 @@ final class users_creator {
         $existing = 0;
         $skipped = 0;
         $total = is_array($participants) ? count($participants) : 0;
+        $ausbildungenupdated = 0;
 
         foreach ($participants as $p) {
             if (!is_array($p)) {
@@ -79,6 +84,7 @@ final class users_creator {
                 if ($u) {
                     $this->check_and_fill_ids($u, $id, $initialid);
                     $existing++;
+                    $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
                     continue;
                 }
             }
@@ -87,6 +93,7 @@ final class users_creator {
             if ($u) {
                 $this->usermap->set_userid($id, (int)$u->id);
                 $existing++;
+                $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
                 continue;
             }
 
@@ -99,6 +106,7 @@ final class users_creator {
                 $this->usermap->set_userid($id, (int)$u->id);
                 $this->check_and_fill_ids($u, $id, $initialid);
                 $existing++;
+                $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
                 continue;
             }
 
@@ -134,6 +142,7 @@ final class users_creator {
                 $userid = user_create_user($newuser, false, false);
                 // Persist mapping.
                 $this->usermap->set_userid($id, (int)$userid);
+                $ausbildungenupdated += (int)$this->ausbildungen->write((int)$userid, $p);
                 $created++;
             } catch (\dml_write_exception $e) {
                 // Another process may have inserted the same username concurrently.
@@ -146,6 +155,7 @@ final class users_creator {
                 if ($u) {
                     $this->usermap->set_userid($id, (int)$u->id);
                     $existing++;
+                    $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
                     continue;
                 }
 
@@ -158,6 +168,7 @@ final class users_creator {
             'existing' => $existing,
             'skipped'  => $skipped,
             'total'    => $total,
+            'ausbildungen_updated' => $ausbildungenupdated,
         ];
     }
 

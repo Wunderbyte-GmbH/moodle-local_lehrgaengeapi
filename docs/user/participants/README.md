@@ -12,7 +12,7 @@ their group and their course completion.
 1. Make sure the target course has a **manual enrolment** instance — without it nothing is enrolled.
 2. Run an import and open the run's detail page in the [import history](../manual_import/README.md#4-import-history).
 3. Expand *Participant details per course* to see per-course counters.
-4. Match unexpected counters against the [status table](#3-status-to-action-mapping) below.
+4. Match unexpected counters against the [status table](#4-status-to-action-mapping) below.
 
 ---
 
@@ -20,11 +20,12 @@ their group and their course completion.
 
 1. [The participant sync in order](#1-the-participant-sync-in-order)
 2. [User matching and creation](#2-user-matching-and-creation)
-3. [Status-to-action mapping](#3-status-to-action-mapping)
-4. [Enrolment and unenrolment](#4-enrolment-and-unenrolment)
-5. [Groups](#5-groups)
-6. [Course completion](#6-course-completion)
-7. [Reading the counters](#7-reading-the-counters)
+3. [Ausbildungen in the user profile](#3-ausbildungen-in-the-user-profile)
+4. [Status-to-action mapping](#4-status-to-action-mapping)
+5. [Enrolment and unenrolment](#5-enrolment-and-unenrolment)
+6. [Groups](#6-groups)
+7. [Course completion](#7-course-completion)
+8. [Reading the counters](#8-reading-the-counters)
 
 ---
 
@@ -35,7 +36,7 @@ For each Lehrgang whose course exists (newly created or pre-existing):
 1. Sleep for `requestdelayms` milliseconds.
 2. `GET /lehrgaenge/{id}/teilnehmer`.
 3. If the list is empty, return zero counters — nothing else happens.
-4. Ensure a Moodle user exists for every participant (`users_creator`).
+4. Ensure a Moodle user exists for every participant and save their Ausbildungen (`users_creator`).
 5. Enrol / unenrol / complete each participant according to their status (`participant_course_assigner`).
 
 A failure in step 2 for one Lehrgang does **not** abort the run. The error is recorded per Lehrgang under
@@ -82,7 +83,31 @@ Notes worth knowing:
 
 ---
 
-## 3. Status-to-action mapping
+## 3. Ausbildungen in the user profile
+
+The participant payload contains an `ausbildungen` list: the trainings the person has taken, each with
+`bezeichnung`, `kurzBezeichnung`, `von`, `bis` and `status`. The plugin stores this list for every participant in the
+custom profile field **Ausbildungen** (shortname `ausbildungen`, category *Lehrgaenge*).
+
+| Aspect | Behaviour |
+|--------|-----------|
+| **Format** | JSON list in API order, reduced to the five keys above. Umlauts and slashes stay readable. |
+| **When** | On **every** sync, for new users and for existing users alike (matched by mapping, `idnumber` or `username`). |
+| **Unchanged list** | Nothing is written. A user who appears in many Lehrgaenge costs a lookup, not a write. |
+| **Changed list** | The stored value is replaced, so new trainings arrive with the next sync. |
+| **Empty or missing list** | Still saved, as an empty value. A previously stored list is **cleared**. |
+| **Field missing** | Nothing is saved and the import carries on. The cron log says `profile field "ausbildungen" not found`. |
+
+The field is created when the plugin is installed or upgraded. It is **locked** and **not visible** to users; only
+the import writes to it. If an admin deletes the field, create a *Textarea* profile field with the shortname
+`ausbildungen` again and the next sync fills it.
+
+> An empty `ausbildungen` list from the API overwrites existing data. If the API ever returns incomplete lists for
+> a participant, the profile field follows it.
+
+---
+
+## 4. Status-to-action mapping
 
 The API sends statuses like `S018_ANGEMELDET_KREIS` or `S033_EINBERUFEN_KREIS`. The plugin strips the leading code
 segment and the trailing scope segment, then matches the middle on substrings:
@@ -108,7 +133,7 @@ To change these rules, see [Status handlers](../../developer-guides/STATUS_HANDL
 
 ---
 
-## 4. Enrolment and unenrolment
+## 5. Enrolment and unenrolment
 
 Enrolment uses the course's **manual enrolment instance** and the role configured on it (`enrol.roleid`, normally
 *Student*).
@@ -131,7 +156,7 @@ historical year that contains cancellations.
 
 ---
 
-## 5. Groups
+## 6. Groups
 
 Participants who are enrolled (newly or already) are also placed into a course group, unless group assignment is
 disabled for that course.
@@ -158,7 +183,7 @@ A course with no `startTag` in its payload gets no group assignment at all.
 
 ---
 
-## 6. Course completion
+## 7. Course completion
 
 The `TEILGENOMMEN` status marks the **course** complete for that user via `completion_completion::mark_complete()`.
 
@@ -172,7 +197,7 @@ course purely so their completion record exists.
 
 ---
 
-## 7. Reading the counters
+## 8. Reading the counters
 
 Each course produces two counter sets on the run detail page.
 
@@ -183,6 +208,7 @@ Each course produces two counter sets on the run detail page.
 | New users | A Moodle account was created |
 | Existing users | An account was matched by mapping, `idnumber` or `username` |
 | Users skipped | The payload entry had no usable id |
+| Trainings updated | The user's *Ausbildungen* profile field was created or changed (see [section 3](#3-ausbildungen-in-the-user-profile)) |
 
 **Assignments**
 
