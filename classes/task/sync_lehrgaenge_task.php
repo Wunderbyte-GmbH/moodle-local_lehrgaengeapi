@@ -31,6 +31,7 @@ use local_lehrgaengeapi\local\repository\import_run_repository;
 use local_lehrgaengeapi\api\exceptions\api_rate_limited_exception;
 use local_lehrgaengeapi\api\exceptions\api_unauthorized_exception;
 use local_lehrgaengeapi\api\exceptions\api_exception;
+use local_lehrgaengeapi\local\notification\import_notifier;
 
 /**
  * Scheduled task: sync lehrgaenge.
@@ -106,6 +107,7 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
             }
             mtrace('local_lehrgaengeapi: lehrgaenge sync summary: ' . json_encode($summary));
             $runs->mark_success($run->id, $summary);
+            import_notifier::notify_configured_users(import_run_repository::STATUS_SUCCESS);
         } catch (api_rate_limited_exception $e) {
             $retry = method_exists($e, 'get_retry_after_seconds') ? $e->get_retry_after_seconds() : null;
             mtrace('local_lehrgaengeapi: rate limited (429). Retry-After=' . ($retry ?? 'n/a'));
@@ -114,6 +116,7 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
                 $detail .= ' | Response: ' . $e->get_response_body();
             }
             $runs->mark_error($run->id, $detail);
+            import_notifier::notify_configured_users(import_run_repository::STATUS_ERROR);
             // Let Moodle mark run as failed so faildelay kicks in.
             throw $e;
         } catch (api_unauthorized_exception $e) {
@@ -123,6 +126,7 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
                 $detail .= ' | Response: ' . $e->get_response_body();
             }
             $runs->mark_error($run->id, $detail);
+            import_notifier::notify_configured_users(import_run_repository::STATUS_ERROR);
             throw $e;
         } catch (api_exception $e) {
             mtrace('local_lehrgaengeapi: unexpected error: ' . $e->getMessage());
@@ -131,10 +135,12 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
                 $detail .= ' | Response: ' . $e->get_response_body();
             }
             $runs->mark_error($run->id, $detail);
+            import_notifier::notify_configured_users(import_run_repository::STATUS_ERROR);
             throw $e;
         } catch (\Throwable $e) {
             mtrace('local_lehrgaengeapi: unexpected error: ' . $e->getMessage());
             $runs->mark_error($run->id, $e->getMessage());
+            import_notifier::notify_configured_users(import_run_repository::STATUS_ERROR);
             throw $e;
         } finally {
             $lock->release();

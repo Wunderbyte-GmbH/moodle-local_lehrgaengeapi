@@ -124,7 +124,8 @@ Both admin pages are registered as `admin_externalpage` entries under *Local plu
 
 ### Message provider
 
-`local_lehrgaengeapi/importcomplete` — notifies the user who triggered a manual import once it finishes. Popup
+`local_lehrgaengeapi/importcomplete` — notifies the user who triggered a manual import once it finishes, and the
+users selected in the *Notify on automatic import* setting when the scheduled sync finishes or fails. Popup
 notifications are enabled by default, email is permitted but off by default.
 
 ---

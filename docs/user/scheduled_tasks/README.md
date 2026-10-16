@@ -14,6 +14,7 @@ cron.
 3. Adjust the schedule if the default Sunday night slot does not suit you.
 4. Run it manually once to verify the configuration.
 5. Check the result in the [import history](../manual_import/README.md#4-import-history).
+6. Optionally select users to be notified when it finishes — see [Notifications](#6-notifications).
 
 ---
 
@@ -24,7 +25,8 @@ cron.
 3. [`copy_course_content_task`](#3-copy_course_content_task)
 4. [Error handling](#4-error-handling)
 5. [Locking](#5-locking)
-6. [Running a task by hand](#6-running-a-task-by-hand)
+6. [Notifications](#6-notifications)
+7. [Running a task by hand](#7-running-a-task-by-hand)
 
 ---
 
@@ -154,7 +156,32 @@ session ends.
 
 ---
 
-## 6. Running a task by hand
+## 6. Notifications
+
+| Task | Who is notified |
+|------|-----------------|
+| `sync_lehrgaenge_task` | The users selected in the **Notify on automatic import** setting — see [Configuration](../configuration/README.md#5-notifications-for-automatic-imports). Nobody if the setting is empty. |
+| `manual_import_lehrgaenge_task` | The user who triggered the import — see [Manual import](../manual_import/README.md#6-notifications). |
+
+For the scheduled task a notification is sent when
+
+| Outcome | Message |
+|---------|---------|
+| Run finished | *Automatic Lehrgaenge import completed* |
+| Run aborted (429, 401 or any other exception) | *Automatic Lehrgaenge import failed* |
+
+Details worth knowing:
+
+- A **finished** run is reported as completed even if single tenants failed — those failures are only visible in the
+  [import history](../manual_import/README.md#4-import-history), exactly as for the run status itself.
+- Every **failed attempt** sends a notification. Because an aborted run is retried through `faildelay`, a persistent
+  problem such as a stale API key produces one message per attempt.
+- If the lock is held (`lockbusy`) **no** notification is sent: no run was started and Moodle retries automatically.
+- A notification that cannot be sent is only logged with `mtrace()`. It never changes the result of the import.
+
+---
+
+## 7. Running a task by hand
 
 Run the scheduled sync immediately:
 

@@ -153,4 +153,85 @@ final class sync_lehrgaenge_task_test extends \advanced_testcase {
             $this->assertArrayHasKey('unfoundhlfscourses', $tenantsummary);
         }
     }
+
+    /**
+     * A finished automatic run notifies every user configured in the notifyusers setting.
+     * Tenant-level failures do not change that: the run itself still finishes successfully.
+     *
+     * @covers \local_lehrgaengeapi\task\sync_lehrgaenge_task::execute
+     */
+    public function test_execute_notifies_configured_users_on_success(): void {
+        $this->resetAfterTest(true);
+
+        $user1 = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user();
+        set_config('notifyusers', $user1->id . ',' . $user2->id, 'local_lehrgaengeapi');
+        $sink = $this->redirectMessages();
+
+        $task = new sync_lehrgaenge_task();
+        ob_start();
+        $task->execute();
+        ob_end_clean();
+
+        $messages = $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete');
+        $this->assertCount(2, $messages);
+        $recipients = array_map(static fn($m) => (int)$m->useridto, $messages);
+        $this->assertEqualsCanonicalizing([(int)$user1->id, (int)$user2->id], $recipients);
+        foreach ($messages as $message) {
+            $this->assertSame(get_string('autoimportsuccesssubject', 'local_lehrgaengeapi'), $message->subject);
+        }
+    }
+
+    /**
+     * Without configured users the automatic run sends no notification (previous behaviour).
+     *
+     * @covers \local_lehrgaengeapi\task\sync_lehrgaenge_task::execute
+     */
+    public function test_execute_sends_no_notification_without_configured_users(): void {
+        $this->resetAfterTest(true);
+        $sink = $this->redirectMessages();
+
+        $task = new sync_lehrgaenge_task();
+        ob_start();
+        $task->execute();
+        ob_end_clean();
+
+        $this->assertCount(0, $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete'));
+    }
+
+    /**
+     * A busy lock throws before any run exists - nothing happened yet, and Moodle
+     * retries via faildelay, so configured users must not be notified.
+     *
+     * @covers \local_lehrgaengeapi\task\sync_lehrgaenge_task::execute
+     */
+    public function test_execute_does_not_notify_when_lock_busy(): void {
+        global $CFG;
+        $this->resetAfterTest(true);
+        $CFG->lock_factory = '\core\lock\file_lock_factory';
+
+        $user = $this->getDataGenerator()->create_user();
+        set_config('notifyusers', (string)$user->id, 'local_lehrgaengeapi');
+        $sink = $this->redirectMessages();
+
+        $factory = \core\lock\lock_config::get_lock_factory('local_lehrgaengeapi');
+        $lock = $factory->get_lock('sync_lehrgaenge', 0);
+        $this->assertNotFalse($lock, 'Test setup failed to acquire the lock.');
+
+        try {
+            $task = new sync_lehrgaenge_task();
+            ob_start();
+            try {
+                $task->execute();
+                $this->fail('execute() should throw when the lock is busy.');
+            } catch (\moodle_exception $e) {
+                $this->assertSame('lockbusy', $e->errorcode);
+            } finally {
+                ob_end_clean();
+            }
+            $this->assertCount(0, $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete'));
+        } finally {
+            $lock->release();
+        }
+    }
 }

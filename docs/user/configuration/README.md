@@ -16,7 +16,8 @@ and are stored in Moodle's `config_plugins` table under the plugin name `local_l
 2. Set **Certificate path**, **Client certificate filename** and **Client key filename** if the API requires mTLS.
 3. Leave **Request timeout** and **Request delay** at their defaults for the first run.
 4. Enter the API key for each tenant further down the page — see [Tenants](../tenants/README.md).
-5. Save, then trigger a [manual import](../manual_import/README.md) for the current year to verify.
+5. Optionally select the users to notify about automatic imports — see [Notifications](#5-notifications-for-automatic-imports).
+6. Save, then trigger a [manual import](../manual_import/README.md) for the current year to verify.
 
 ---
 
@@ -26,8 +27,9 @@ and are stored in Moodle's `config_plugins` table under the plugin name `local_l
 2. [Client certificates (mTLS)](#2-client-certificates-mtls)
 3. [Rate limiting and timeouts](#3-rate-limiting-and-timeouts)
 4. [Tenant settings](#4-tenant-settings)
-5. [Settings that currently have no effect](#5-settings-that-currently-have-no-effect)
-6. [Setting the values from the CLI](#6-setting-the-values-from-the-cli)
+5. [Notifications for automatic imports](#5-notifications-for-automatic-imports)
+6. [Settings that currently have no effect](#6-settings-that-currently-have-no-effect)
+7. [Setting the values from the CLI](#7-setting-the-values-from-the-cli)
 
 ---
 
@@ -116,7 +118,29 @@ The full list of tenants and their config names is in [Tenants](../tenants/READM
 
 ---
 
-## 5. Settings that currently have no effect
+## 5. Notifications for automatic imports
+
+| Setting | Config name | Type | Default | Effect |
+|---------|-------------|------|---------|--------|
+| **Notify on automatic import** | `notifyusers` | user autocomplete (multiple) | *(nobody)* | Users who are notified when the [scheduled sync](../scheduled_tasks/README.md#1-sync_lehrgaenge_task) finishes or aborts with an error. |
+
+Type a name or email address into the field to search for users; several users can be selected. The value is stored
+as a comma-separated list of user ids.
+
+- **Any user can be selected**, no capability is required. The notification links to the
+  [import history](../manual_import/README.md#4-import-history), which only users with
+  `moodle/site:config` can open — a recipient without it gets the message but not the page.
+- **Suspended and deleted users are skipped** when the notification is sent, without affecting the other recipients.
+- **Empty means no notification**, which is also the behaviour of installations that never set this.
+- Manual imports are not affected: they still notify only the user who triggered them. See
+  [Notifications](../manual_import/README.md#6-notifications).
+
+The notification uses the existing `importcomplete` message provider, so each recipient can change popup and email
+delivery under *Preferences → Notification preferences*.
+
+---
+
+## 6. Settings that currently have no effect
 
 Four settings are registered on the page but are not read by any code path that runs during a sync. They are
 documented here so nobody spends time tuning them:
@@ -132,7 +156,7 @@ Changing any of these has no effect on what the plugin does.
 
 ---
 
-## 6. Setting the values from the CLI
+## 7. Setting the values from the CLI
 
 Useful for scripted deployments:
 
@@ -143,6 +167,8 @@ php admin/cli/cfg.php --component=local_lehrgaengeapi --name=certificationpath -
 php admin/cli/cfg.php --component=local_lehrgaengeapi --name=certificate_general --set=client.pem
 php admin/cli/cfg.php --component=local_lehrgaengeapi --name=key_general --set=client.key
 php admin/cli/cfg.php --component=local_lehrgaengeapi --name=apikey_fd --set=<secret>
+# User ids, comma-separated:
+php admin/cli/cfg.php --component=local_lehrgaengeapi --name=notifyusers --set=2,15
 ```
 
 To read a value back:

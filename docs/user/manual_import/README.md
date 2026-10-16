@@ -150,4 +150,7 @@ When a **manual** import finishes, the user who triggered it receives a notifica
 The notification links straight to the import history. Popup delivery is enabled by default and email delivery is
 permitted; users can change this under *Preferences → Notification preferences*.
 
-Scheduled runs send no notification — check the import history or the cron log instead.
+Scheduled runs do not notify the user who triggered a manual import (there is none). Instead, the users selected
+in the **Notify on automatic import** setting are notified — see
+[Configuration](../configuration/README.md#5-notifications-for-automatic-imports) and
+[Scheduled tasks](../scheduled_tasks/README.md#6-notifications).

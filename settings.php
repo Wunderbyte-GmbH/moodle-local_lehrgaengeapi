@@ -24,6 +24,7 @@
  */
 
 use local_lehrgaengeapi\local\tenants\tenants;
+use local_lehrgaengeapi\admin\setting_users_autocomplete;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -118,6 +119,12 @@ if ($hassiteconfig) {
             'targetcourseiddesc',
             0,
             $courseoptions
+        ));
+
+        $settings->add(new setting_users_autocomplete(
+            $componentname . '/notifyusers',
+            get_string('notifyusers', $componentname),
+            get_string('notifyusersdesc', $componentname)
         ));
 
         $settings->add(new admin_setting_heading(

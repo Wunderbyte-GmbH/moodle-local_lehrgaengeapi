@@ -118,7 +118,7 @@ this behaviour.
 *Sync interval: Lehrgänge list*, *Sync interval: Teilnehmer*, *Target course ID* and the unregistered *API token*
 are not read by any code path that runs during a sync. Sync frequency is the scheduled task's schedule, and
 templates are resolved by shortname. See
-[Configuration](../configuration/README.md#5-settings-that-currently-have-no-effect).
+[Configuration](../configuration/README.md#6-settings-that-currently-have-no-effect).
 
 **The `requestdelayms` help text says 500 ms; the real default is 1000 ms.**
 Only the help text is stale.

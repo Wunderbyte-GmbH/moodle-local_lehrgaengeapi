@@ -97,7 +97,7 @@ So before the first import of a new course type, create one course per type with
 
 > The **Target course ID** setting on the settings page looks like it configures this, but it is not read by any
 > code path. Template resolution is purely by shortname. See
-> [Configuration](../configuration/README.md#5-settings-that-currently-have-no-effect).
+> [Configuration](../configuration/README.md#6-settings-that-currently-have-no-effect).
 
 ---
 
