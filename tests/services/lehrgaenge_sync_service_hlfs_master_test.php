@@ -218,8 +218,14 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
         $method = new \ReflectionMethod($service, 'split_participant_details');
         $method->setAccessible(true);
 
-        $first = ['florixid' => 'A', 'assignments' => ['noop' => 1, 'details' => [['participantid' => 'p1', 'outcome' => 'noop']]]];
-        $second = ['florixid' => 'B', 'assignments' => ['noop' => 0, 'details' => [['participantid' => 'p2', 'outcome' => 'enrolled']]]];
+        $first = [
+            'florixid' => 'A',
+            'assignments' => ['noop' => 1, 'details' => [['participantid' => 'p1', 'outcome' => 'noop']]],
+        ];
+        $second = [
+            'florixid' => 'B',
+            'assignments' => ['noop' => 0, 'details' => [['participantid' => 'p2', 'outcome' => 'enrolled']]],
+        ];
         $without = ['florixid' => 'C', 'assignments' => ['noop' => 0]];
 
         $details = [];
