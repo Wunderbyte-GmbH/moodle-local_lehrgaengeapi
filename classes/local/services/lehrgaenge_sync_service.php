@@ -126,6 +126,7 @@ final class lehrgaenge_sync_service {
         $company = $this->tenantcreator->get_tenant($tenant);
         $userreport = [];
         $unfoundhlfscourses = [];
+        $participantdetails = [];
         foreach ($items as $item) {
             if (!is_array($item)) {
                 $skipped++;
@@ -150,9 +151,8 @@ final class lehrgaenge_sync_service {
             $identifications = $this->set_course_identifications($item, $currentcompany);
             $shortname = implode('-', $identifications);
             $existing = $DB->get_record('course', ['shortname' => $shortname], '*', IGNORE_MISSING);
-
             if (!$existing) {
-                $altshortname = $this->resolve_alt_shortname_for_past_course($identifications);
+                $altshortname = $this->resolve_alt_shortname_for_past_course($identifications, $ishlfs);
                 if ($altshortname !== null) {
                     $existing = $DB->get_record('course', ['shortname' => $altshortname], '*', IGNORE_MISSING);
                     if (!$existing) {
@@ -172,13 +172,27 @@ final class lehrgaenge_sync_service {
             }
 
             if ($existing) {
+                // Backfill the Florix id on courses found by shortname that have none yet.
+                // Completion (_alt) courses stay without one, they serve many Lehrgaenge.
+                if (
+                    (string)$existing->idnumber === ''
+                    && !str_ends_with((string)$existing->shortname, '_alt')
+                    && !$DB->record_exists('course', ['idnumber' => $externalid])
+                ) {
+                    $DB->set_field('course', 'idnumber', $externalid, ['id' => $existing->id]);
+                }
                 $this->coursemap->set_courseid($externalid, (int)$existing->id);
                 try {
-                    $userreport[$existing->id] = $this->participantssync->sync_for_course(
+                    $userreport[$existing->id] = $this->split_participant_details(
+                        $this->participantssync->sync_for_course(
+                            $externalid,
+                            (int)$existing->id,
+                            $this->build_assignment_course_payload($item, (string)$existing->shortname),
+                            $tenant
+                        ),
                         $externalid,
                         (int)$existing->id,
-                        $this->build_assignment_course_payload($item, (string)$existing->shortname),
-                        $tenant
+                        $participantdetails
                     );
                 } catch (\Throwable $e) {
                     $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
@@ -188,7 +202,7 @@ final class lehrgaenge_sync_service {
             }
 
             try {
-                $course = $this->coursecreator->create($currentcompany, $item, $identifications);
+                $course = $this->coursecreator->create($currentcompany, $item, $identifications, $ishlfs);
             } catch (\Throwable $e) {
                 // A single Lehrgang that cannot be created must never abort the tenant -
                 // the remaining Lehrgaenge are still processed and the counters survive.
@@ -202,7 +216,7 @@ final class lehrgaenge_sync_service {
                     $unfoundhlfscourses[$externalid] = [
                         'externalid' => $externalid,
                         'sourceshortname' => $shortname,
-                        'shortname' => $this->resolve_alt_shortname_for_past_course($identifications) ?? $shortname,
+                        'shortname' => $this->resolve_alt_shortname_for_past_course($identifications, true),
                         'bezeichnung' => (string)($item['bezeichnung'] ?? ''),
                         'kurzbezeichnung' => (string)($item['kurzbezeichnung'] ?? ''),
                         'ort' => $item['ort'],
@@ -213,11 +227,16 @@ final class lehrgaenge_sync_service {
             }
             $currentcompany->add_course($course);
             try {
-                $userreport[$course->id] = $this->participantssync->sync_for_course(
+                $userreport[$course->id] = $this->split_participant_details(
+                    $this->participantssync->sync_for_course(
+                        $externalid,
+                        (int)$course->id,
+                        $this->build_assignment_course_payload($item, (string)$course->shortname),
+                        $tenant
+                    ),
                     $externalid,
                     (int)$course->id,
-                    $this->build_assignment_course_payload($item, (string)$course->shortname),
-                    $tenant
+                    $participantdetails
                 );
             } catch (\Throwable $e) {
                 $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
@@ -233,6 +252,7 @@ final class lehrgaenge_sync_service {
             'failed' => $failed,
             'userreport' => $userreport,
             'unfoundhlfscourses' => $unfoundhlfscourses,
+            'participantdetails' => $participantdetails,
         ];
     }
 
@@ -295,6 +315,26 @@ final class lehrgaenge_sync_service {
     }
 
     /**
+     * Move the per-participant details out of a Lehrgang report into their own structure.
+     *
+     * The report is keyed by Moodle course id, so for a collection course the Lehrgaenge
+     * overwrite each other there. The details are therefore keyed by course id and Florix id.
+     *
+     * @param array $report Result of participantssync->sync_for_course().
+     * @param string $externalid External Lehrgang.id.
+     * @param int $courseid Moodle course id.
+     * @param array $details Collected details (by reference).
+     * @return array The report without the details.
+     */
+    private function split_participant_details(array $report, string $externalid, int $courseid, array &$details): array {
+        if (isset($report['assignments']['details'])) {
+            $details[$courseid][$externalid] = $report['assignments']['details'];
+            unset($report['assignments']['details']);
+        }
+        return $report;
+    }
+
+    /**
      * Build course payload for participant assignment with optional flags.
      *
      * @param array $item
@@ -339,15 +379,18 @@ final class lehrgaenge_sync_service {
      *
      * @param array $identifications
      * @return string|null
+     * @param bool $always Build the name regardless of the year (HLFS collection courses).
      */
-    private function resolve_alt_shortname_for_past_course(array $identifications): ?string {
+    private function resolve_alt_shortname_for_past_course(array $identifications, bool $always = false): ?string {
         $year = (string)($identifications['year'] ?? '');
-        if (!preg_match('/^\d{2}$/', $year)) {
-            return null;
-        }
+        if (!$always) {
+            if (!preg_match('/^\d{2}$/', $year)) {
+                return null;
+            }
 
-        if ((int)$year >= (int)date('y')) {
-            return null;
+            if ((int)$year >= (int)date('y')) {
+                return null;
+            }
         }
 
         return implode('-', [

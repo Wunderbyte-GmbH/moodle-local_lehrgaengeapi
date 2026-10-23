@@ -227,6 +227,57 @@ if ($id) {
                 ['class' => 'mt-3']
             );
         }
+
+        $outcometable = new html_table();
+        $outcometable->attributes['class'] = 'generaltable sticky-header-table';
+        $outcometable->head = [
+            get_string('coltenant', 'local_lehrgaengeapi'),
+            get_string('colcourse', 'local_lehrgaengeapi'),
+            get_string('colexternalid', 'local_lehrgaengeapi'),
+            get_string('colparticipantid', 'local_lehrgaengeapi'),
+            get_string('coluser', 'local_lehrgaengeapi'),
+            get_string('colapistatus', 'local_lehrgaengeapi'),
+            get_string('coloutcome', 'local_lehrgaengeapi'),
+        ];
+        foreach ($decoded as $tenantabbr => $tenantresult) {
+            foreach (($tenantresult['participantdetails'] ?? []) as $courseid => $bylehrgang) {
+                foreach ($bylehrgang as $florixid => $rows) {
+                    foreach ($rows as $row) {
+                        $outcome = (string)($row['outcome'] ?? '');
+                        $base = str_replace('+completed', '', $outcome);
+                        $label = get_string_manager()->string_exists('outcome_' . $base, 'local_lehrgaengeapi')
+                            ? get_string('outcome_' . $base, 'local_lehrgaengeapi')
+                            : $base;
+                        if (str_ends_with($outcome, '+completed')) {
+                            $label .= get_string('outcome_completed', 'local_lehrgaengeapi');
+                        }
+                        $userid = (int)($row['userid'] ?? 0);
+                        $outcometable->data[] = [
+                            s($tenantabbr),
+                            html_writer::link(new moodle_url('/course/view.php', ['id' => (int)$courseid]), (string)(int)$courseid),
+                            s((string)$florixid),
+                            s((string)($row['participantid'] ?? '')),
+                            $userid > 0
+                                ? html_writer::link(
+                                    new moodle_url('/user/view.php', ['id' => $userid, 'course' => (int)$courseid]),
+                                    (string)$userid
+                                )
+                                : '-',
+                            s((string)($row['status'] ?? '')),
+                            s($label),
+                        ];
+                    }
+                }
+            }
+        }
+        if ($outcometable->data) {
+            echo html_writer::tag(
+                'details',
+                html_writer::tag('summary', get_string('participantoutcomes', 'local_lehrgaengeapi'))
+                . html_writer::tag('div', html_writer::table($outcometable), ['class' => 'lehrgaengeapi-participant-scroll']),
+                ['class' => 'mt-3']
+            );
+        }
     } else if ($run->status === import_run_repository::STATUS_ERROR) {
         echo $OUTPUT->notification(s($decoded['error'] ?? ''), 'error');
     } else if ($run->status === import_run_repository::STATUS_SKIPPED) {

@@ -43,9 +43,10 @@ final class course_creator {
      * @param company $tenant
      * @param array $item
      * @param array $identifications
+     * @param bool $ishlfs Whether the Lehrgang belongs to the HLFS tenant (enables the master course fallback).
      * @return \stdClass|null
      */
-    public function create(company $tenant, array $item, array $identifications): \stdClass|null {
+    public function create(company $tenant, array $item, array $identifications, bool $ishlfs = false): \stdClass|null {
         global $DB;
 
         $templatecourse = $this->get_previous_course($identifications);
@@ -58,6 +59,13 @@ final class course_creator {
         // for building the _alt completion course.
         if (empty($templatecourse) && $this->is_past_year((string)($identifications['year'] ?? ''))) {
             $templatecourse = $this->get_current_year_course($identifications);
+        }
+
+        // HLFS collection courses: without any other template, build them from the master course.
+        $usedmaster = false;
+        if (empty($templatecourse) && $ishlfs) {
+            $templatecourse = $this->get_master_course();
+            $usedmaster = !empty($templatecourse);
         }
 
         if (empty($templatecourse)) {
@@ -76,7 +84,7 @@ final class course_creator {
         }
 
         $baseshortname = implode('-', $identifications);
-        $shortname = $this->resolve_target_shortname($identifications, $baseshortname);
+        $shortname = $this->resolve_target_shortname($identifications, $baseshortname, $usedmaster);
         $data->category  = $tenant->get('category');
         $data->fullname  = $identifications['coursename'];
         if (str_ends_with($shortname, '_alt')) {
@@ -120,7 +128,6 @@ final class course_creator {
         return $DB->get_record('course', ['shortname' => $shortname]) ?: null;
     }
 
-
     /**
      * Resolve the shortname that should be created for a given Lehrgang.
      *
@@ -129,10 +136,11 @@ final class course_creator {
      *
      * @param array $identifications
      * @param string $baseshortname
+     * @param bool $forcealt Always build the year-less _alt name (HLFS master course fallback).
      * @return string
      */
-    private function resolve_target_shortname(array $identifications, string $baseshortname): string {
-        if (!$this->is_past_year((string)($identifications['year'] ?? ''))) {
+    private function resolve_target_shortname(array $identifications, string $baseshortname, bool $forcealt = false): string {
+        if (!$forcealt && !$this->is_past_year((string)($identifications['year'] ?? ''))) {
             return $baseshortname;
         }
 
@@ -256,5 +264,21 @@ final class course_creator {
             'adminid'          => get_admin()->id,
         ]);
         \core\task\manager::queue_adhoc_task($task, true);
+    }
+
+    /**
+     * Get the configured master course (setting targetcourseid) used for HLFS collection courses.
+     *
+     * @return \stdClass|null
+     */
+    private function get_master_course(): ?\stdClass {
+        global $DB;
+
+        $courseid = (int)get_config('local_lehrgaengeapi', 'targetcourseid');
+        if ($courseid <= 0 || $courseid === (int)SITEID) {
+            return null;
+        }
+
+        return $DB->get_record('course', ['id' => $courseid]) ?: null;
     }
 }

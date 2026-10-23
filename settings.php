@@ -127,6 +127,14 @@ if ($hassiteconfig) {
             get_string('notifyusersdesc', $componentname)
         ));
 
+        $settings->add(new admin_setting_configtext(
+            $componentname . '/detailcourseids',
+            get_string('detailcourseids', $componentname),
+            get_string('detailcourseidsdesc', $componentname),
+            '',
+            '/^\s*(\d+(\s*,\s*\d+)*)?\s*$/'
+        ));
+
         $settings->add(new admin_setting_heading(
             $componentname . '/mandanten_heading',
             get_string('tenantheading', $componentname),

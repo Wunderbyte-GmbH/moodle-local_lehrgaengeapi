@@ -118,4 +118,118 @@ final class participant_course_assigner_test extends \advanced_testcase {
         $context = context_course::instance((int)$course->id);
         $this->assertFalse(is_enrolled($context, (int)$user->id, '', true));
     }
+
+    /**
+     * A course listed in detailcourseids gets one detail entry per participant with the
+     * outcome of what was done - without any names in it.
+     *
+     * @covers \local_lehrgaengeapi\local\services\participant_course_assigner::assign
+     */
+    public function test_assign_reports_details_for_configured_course(): void {
+        global $DB;
+
+        $this->resetAfterTest(true);
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $other = $this->getDataGenerator()->create_course();
+        set_config('detailcourseids', ' ' . $other->id . ' , ' . $course->id, 'local_lehrgaengeapi');
+
+        $passed = $this->getDataGenerator()->create_user();
+        $noop = $this->getDataGenerator()->create_user();
+        $left = $this->getDataGenerator()->create_user();
+        $stranger = $this->getDataGenerator()->create_user();
+
+        $manualinstance = $DB->get_record('enrol', ['courseid' => (int)$course->id, 'enrol' => 'manual'], '*', MUST_EXIST);
+        enrol_get_plugin('manual')->enrol_user($manualinstance, (int)$left->id, (int)$manualinstance->roleid);
+
+        $repo = new usermap_repository();
+        $repo->set_userid('D-1', (int)$passed->id);
+        $repo->set_userid('D-2', (int)$noop->id);
+        $repo->set_userid('D-3', (int)$left->id);
+        $repo->set_userid('D-4', (int)$stranger->id);
+
+        $report = (new participant_course_assigner())->assign([
+            ['id' => 'D-1', 'status' => 'S050_TEILGENOMMEN_KREIS', 'vorname' => 'Anna'],
+            ['id' => 'D-2', 'status' => 'S084_BESTANDEN_LAND'],
+            ['id' => 'D-3', 'status' => 'S090_ZURUECKGESTELLT_LAND'],
+            ['id' => 'D-4', 'status' => 'S090_ZURUECKGESTELLT_LAND'],
+            ['id' => 'D-UNKNOWN', 'status' => 'S050_TEILGENOMMEN_KREIS'],
+            ['status' => 'S050_TEILGENOMMEN_KREIS'],
+        ], (int)$course->id, []);
+
+        $byparticipant = [];
+        foreach ($report['details'] as $detail) {
+            $byparticipant[$detail['participantid']] = $detail;
+        }
+
+        $this->assertCount(6, $report['details']);
+        $this->assertSame('enrolled+completed', $byparticipant['D-1']['outcome']);
+        $this->assertSame((int)$passed->id, $byparticipant['D-1']['userid']);
+        $this->assertSame('S050_TEILGENOMMEN_KREIS', $byparticipant['D-1']['status']);
+        $this->assertSame('noop', $byparticipant['D-2']['outcome']);
+        $this->assertSame('unenrolled', $byparticipant['D-3']['outcome']);
+        $this->assertSame('alreadyunenrolled', $byparticipant['D-4']['outcome']);
+        $this->assertSame('skipped_nouser', $byparticipant['D-UNKNOWN']['outcome']);
+        $this->assertSame(0, $byparticipant['D-UNKNOWN']['userid']);
+        $this->assertSame('skipped_noid', $byparticipant['']['outcome']);
+
+        // No personal data beyond ids and status ends up in the report.
+        $this->assertStringNotContainsString('Anna', json_encode($report['details']));
+
+        // The detail counts agree with the aggregate counters.
+        $this->assertSame(1, $report['enrolled']);
+        $this->assertSame(1, $report['noop']);
+        $this->assertSame(1, $report['unenrolled']);
+        $this->assertSame(1, $report['alreadyunenrolled']);
+        $this->assertSame(1, $report['completed']);
+        $this->assertSame(2, $report['skipped']);
+    }
+
+    /**
+     * Courses that are not listed in detailcourseids keep the report exactly as before.
+     *
+     * @covers \local_lehrgaengeapi\local\services\participant_course_assigner::assign
+     */
+    public function test_assign_reports_no_details_for_other_courses(): void {
+        $this->resetAfterTest(true);
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_user();
+        (new usermap_repository())->set_userid('N-1', (int)$user->id);
+
+        $assigner = new participant_course_assigner();
+        $payload = [['id' => 'N-1', 'status' => 'S033_EINBERUFEN_KREIS']];
+
+        $report = $assigner->assign($payload, (int)$course->id, []);
+        $this->assertArrayNotHasKey('details', $report);
+
+        set_config('detailcourseids', '', 'local_lehrgaengeapi');
+        $this->assertArrayNotHasKey('details', $assigner->assign($payload, (int)$course->id, []));
+
+        set_config('detailcourseids', '99999', 'local_lehrgaengeapi');
+        $this->assertArrayNotHasKey('details', $assigner->assign($payload, (int)$course->id, []));
+    }
+
+    /**
+     * Details of one course must not leak into the report of the next course.
+     *
+     * @covers \local_lehrgaengeapi\local\services\participant_course_assigner::assign
+     */
+    public function test_assign_details_are_reset_per_course(): void {
+        $this->resetAfterTest(true);
+        $first = $this->getDataGenerator()->create_course();
+        $second = $this->getDataGenerator()->create_course();
+        set_config('detailcourseids', $first->id . ',' . $second->id, 'local_lehrgaengeapi');
+        $u1 = $this->getDataGenerator()->create_user();
+        $u2 = $this->getDataGenerator()->create_user();
+        $repo = new usermap_repository();
+        $repo->set_userid('R-1', (int)$u1->id);
+        $repo->set_userid('R-2', (int)$u2->id);
+
+        $assigner = new participant_course_assigner();
+        $one = $assigner->assign([['id' => 'R-1', 'status' => 'S033_EINBERUFEN_KREIS']], (int)$first->id, []);
+        $two = $assigner->assign([['id' => 'R-2', 'status' => 'S033_EINBERUFEN_KREIS']], (int)$second->id, []);
+
+        $this->assertCount(1, $one['details']);
+        $this->assertCount(1, $two['details']);
+        $this->assertSame('R-2', $two['details'][0]['participantid']);
+    }
 }
