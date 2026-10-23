@@ -81,14 +81,14 @@ participants were synced.
 | Symptom | Explanation |
 |---------|-------------|
 | Everything counted under *Assignment skipped* | The course has no manual enrolment instance, or the `manual` plugin is disabled site-wide. |
-| Large *No action* count | The statuses in the payload match none of the mapping rules. `ANGEMELDET` and `BESTANDEN` are genuinely no-ops — only *Einberufung* enrols and only `TEILGENOMMEN` completes. See [Participants](../participants/README.md#4-status-to-action-mapping). |
+| Large *No action* count | The statuses in the payload match none of the mapping rules. `ANGEMELDET`, `EINBERUFEN` and `FEHLT_ENTSCHULDIGT` are genuinely no-ops — only *Einberufung verschickt* enrols, and `TEILGENOMMEN` / `BESTANDEN` complete. See [Participants](../participants/README.md#4-status-to-action-mapping). |
 | Users appear with `@invalid.local` addresses | The payload had neither a business nor a private email. |
 | Duplicate-looking accounts | Matching is by mapping row, then `idnumber`, then `username`. A person whose external id changed gets a second account. |
 | An existing user's **username changed** after an import | Intended repair behaviour: when a matched user's username differs from the participant's `initialId`, username and password are rewritten. |
 | Unenrolment deleted someone's grades | Expected — unenrolling removes course data, as it does in the UI. Statuses like `STORNIERT` unenrol. |
 | No groups in an `_alt` course | By design — group assignment is disabled there. |
 | No groups anywhere | The payload has no `startTag`, so no group name can be derived. |
-| Course marked complete without any activity being complete | `TEILGENOMMEN` writes a course-completion record directly, bypassing completion criteria. |
+| Course marked complete without any activity being complete | `TEILGENOMMEN` and `BESTANDEN` write a course-completion record directly, bypassing completion criteria. |
 
 ---
 

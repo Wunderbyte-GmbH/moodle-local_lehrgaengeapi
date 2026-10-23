@@ -35,6 +35,30 @@ require_once($CFG->dirroot . '/course/lib.php');
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class participant_status_handler_resolver {
+    /** @var string[] Keywords of statuses that remove the participant from the course. */
+    private const UNASSIGN_KEYWORDS = [
+        'ABGELEHNT',
+        'NICHT_',
+        'ZURUECKGESTELLT',
+        'STORNIERT',
+        'ABGEBROCHEN',
+        'TERMIN_ABGESAGT',
+        'FEHLT_UNENTSCHULDIGT',
+        'UEBERREGIONALER_LEHRGANG',
+    ];
+
+    /** @var string[] Keywords of statuses that enrol the participant and mark the course complete. */
+    private const COMPLETE_KEYWORDS = [
+        'TEILGENOMMEN',
+        'BESTANDEN',
+    ];
+
+    /** @var string[] Keywords of statuses that enrol the participant. */
+    private const ASSIGN_KEYWORDS = [
+        'EINBERUFUNG',
+        'ANGEMELDET_EIGENE',
+    ];
+
     /** @var participant_status_handler_interface */
     private participant_status_handler_interface $angemeldethandler;
 
@@ -70,48 +94,54 @@ final class participant_status_handler_resolver {
      * Resolve handler based on raw API status.
      *
      * Examples:
-     * - S018_ANGEMELDET_KREIS => angemeldet handler
-     * - S084_BESTANDEN_LAND   => bestanden handler
-     * - anything else         => noop
+     * - S034_EINBERUFUNG_VERSCHICKT_KREIS => angemeldet handler
+     * - S084_BESTANDEN_LAND               => bestanden handler
+     * - S052_NICHT_BESTANDEN_KREIS        => abgemeldet handler
+     * - anything else                     => noop
      *
      * @param string|null $rawstatus
      * @return participant_status_handler_interface
      */
     public function resolve(?string $rawstatus): participant_status_handler_interface {
-        $status = $this->get_main_status_identifer(strtoupper(trim((string)$rawstatus)));
+        $status = $this->strip_status_code(strtoupper(trim((string)$rawstatus)));
 
-        if (
-            strpos($status, 'EINBERUFUNG') !== false ||
-            strpos($status, 'EINBERUFEN') !== false
-        ) {
-            return $this->angemeldethandler;
+        // Unassign rules come first, as e.g. NICHT_BESTANDEN also contains BESTANDEN.
+        if ($this->contains_any($status, self::UNASSIGN_KEYWORDS)) {
+            return $this->abmeldenhandler;
         }
 
-        if (strpos($status, 'TEILGENOMMEN') !== false) {
+        if ($this->contains_any($status, self::COMPLETE_KEYWORDS)) {
             return $this->bestandenhandler;
         }
 
-        if (
-            strpos($status, 'FEHLT') !== false ||
-            strpos($status, 'STORNIERT') !== false ||
-            strpos($status, 'ABGEBROCHEN') !== false ||
-            strpos($status, 'ZURUECKGESTELLT') !== false
-        ) {
-            return $this->abmeldenhandler;
+        if ($this->contains_any($status, self::ASSIGN_KEYWORDS)) {
+            return $this->angemeldethandler;
         }
 
         return $this->noophandler;
     }
 
     /**
-     * Extract main status identifier from raw status string.
+     * Remove the leading status code (e.g. "S034_") from a raw status string.
      * @param string $rawstatus
      * @return string
      */
-    private function get_main_status_identifer(string $rawstatus): string {
-        $parts = explode('_', $rawstatus);
-        array_shift($parts);
-        array_pop($parts);
-        return implode('_', $parts);
+    private function strip_status_code(string $rawstatus): string {
+        return preg_replace('/^S\d+_/', '', $rawstatus);
+    }
+
+    /**
+     * Check whether the status contains at least one of the given keywords.
+     * @param string $status
+     * @param string[] $keywords
+     * @return bool
+     */
+    private function contains_any(string $status, array $keywords): bool {
+        foreach ($keywords as $keyword) {
+            if (strpos($status, $keyword) !== false) {
+                return true;
+            }
+        }
+        return false;
     }
 }

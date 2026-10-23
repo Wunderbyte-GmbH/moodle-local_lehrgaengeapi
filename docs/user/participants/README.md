@@ -109,25 +109,21 @@ the import writes to it. If an admin deletes the field, create a *Textarea* prof
 
 ## 4. Status-to-action mapping
 
-The API sends statuses like `S018_ANGEMELDET_KREIS` or `S033_EINBERUFEN_KREIS`. The plugin strips the leading code
-segment and the trailing scope segment, then matches the middle on substrings:
+The API sends statuses like `S034_EINBERUFUNG_VERSCHICKT_KREIS` or `S052_NICHT_BESTANDEN_KREIS`. The plugin strips the
+leading code (`S034_`) and matches the rest on substrings:
 
 | Status contains | Action | Effect |
 |-----------------|--------|--------|
-| `EINBERUFUNG` or `EINBERUFEN` | assign | Enrol into the course (and add to a group) |
-| `TEILGENOMMEN` | assign + complete | Enrol **and** mark the course complete |
-| `FEHLT`, `STORNIERT`, `ABGEBROCHEN` or `ZURUECKGESTELLT` | unassign | Unenrol from the course |
+| `ABGELEHNT`, `NICHT_`, `ZURUECKGESTELLT`, `STORNIERT`, `ABGEBROCHEN`, `TERMIN_ABGESAGT`, `FEHLT_UNENTSCHULDIGT` or `UEBERREGIONALER_LEHRGANG` | unassign | Unenrol from the course |
+| `TEILGENOMMEN` or `BESTANDEN` | assign + complete | Enrol **and** mark the course complete |
+| `EINBERUFUNG` (*Einberufung verschickt*) or `ANGEMELDET_EIGENE` | assign | Enrol into the course (and add to a group) |
 | anything else | no-op | Nothing at all |
 
-Matching is case-insensitive on the trimmed, uppercased value, and the checks are in the order shown.
+Matching is case-insensitive on the trimmed, uppercased value, and the checks are in the order shown, so
+`NICHT_BESTANDEN` unenrols instead of completing.
 
-> **Read the middle segment, not the whole string.** `S018_ANGEMELDET_KREIS` has the middle segment `ANGEMELDET`,
-> which matches none of the rules above and is therefore a **no-op** — it does not enrol anybody, despite the
-> handler class being called `angemeldet_participant_status_handler`. Only the *Einberufung* statuses enrol.
-> Likewise `BESTANDEN` alone does not complete a course; the completing status is `TEILGENOMMEN`.
-
-Statuses with more or fewer than three underscore-separated segments still work — the first and last segments are
-always dropped and the rest joined back together.
+> **Not every "angemeldet"-like status enrols.** `S018_ANGEMELDET_KREIS`, `S033_EINBERUFEN_KREIS` and
+> `FEHLT_ENTSCHULDIGT` statuses are **no-ops**. Only *Einberufung verschickt* and *Angemeldet eigene Gemeinde* enrol.
 
 To change these rules, see [Status handlers](../../developer-guides/STATUS_HANDLERS_API.md).
 
@@ -185,12 +181,13 @@ A course with no `startTag` in its payload gets no group assignment at all.
 
 ## 7. Course completion
 
-The `TEILGENOMMEN` status marks the **course** complete for that user via `completion_completion::mark_complete()`.
+The `TEILGENOMMEN` and `BESTANDEN` statuses mark the **course** complete for that user via
+`completion_completion::mark_complete()`.
 
 - Users already marked complete are left alone and still counted under *Completed*.
 - This writes a course-completion record directly. It does not evaluate the course's completion criteria, and it
   does not complete individual activities.
-- Completion is applied in addition to enrolment: a `TEILGENOMMEN` participant is enrolled first, then completed.
+- Completion is applied in addition to enrolment: a `TEILGENOMMEN` or `BESTANDEN` participant is enrolled first, then completed.
 
 This is the mechanism behind the `_alt` courses: a historical import enrols people into the current year's `_alt`
 course purely so their completion record exists.

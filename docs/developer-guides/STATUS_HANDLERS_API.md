@@ -34,10 +34,10 @@ To change *which* statuses do what, edit the resolver. To add a *new kind of out
 ## 1. The pipeline
 
 ```
-"S033_EINBERUFEN_KREIS"
+"S034_EINBERUFUNG_VERSCHICKT_KREIS"
         │
         ▼  participant_status_handler_resolver::resolve()
-   strip first and last underscore segment  ->  "EINBERUFEN"
+   strip leading status code  ->  "EINBERUFUNG_VERSCHICKT_KREIS"
         │
         ▼  substring match
    angemeldet_participant_status_handler
@@ -65,48 +65,42 @@ new participant_status_handler_resolver(
 ## 2. Status parsing
 
 ```php
-private function get_main_status_identifer(string $rawstatus): string {
-    $parts = explode('_', $rawstatus);
-    array_shift($parts);   // drop the leading code, e.g. "S033"
-    array_pop($parts);     // drop the trailing scope, e.g. "KREIS"
-    return implode('_', $parts);
+private function strip_status_code(string $rawstatus): string {
+    return preg_replace('/^S\d+_/', '', $rawstatus);   // drop the leading code, e.g. "S034_"
 }
 ```
 
-The input is `strtoupper(trim($rawstatus))` first, so matching is case-insensitive.
+The input is `strtoupper(trim($rawstatus))` first, so matching is case-insensitive. Only the leading code is
+removed; the rest (including the scope such as `KREIS`) is matched as a whole.
 
-| Raw status | Middle segment |
-|------------|----------------|
-| `S033_EINBERUFEN_KREIS` | `EINBERUFEN` |
-| `S018_ANGEMELDET_KREIS` | `ANGEMELDET` |
-| `S084_BESTANDEN_LAND` | `BESTANDEN` |
-| `S090_NICHT_TEILGENOMMEN_LAND` | `NICHT_TEILGENOMMEN` |
-| `TEILGENOMMEN` | *(empty — both segments are dropped)* |
-| `''` | *(empty)* |
-
-The last two rows matter: a status with fewer than three segments loses everything and falls through to the no-op
-handler. Do not feed the resolver a bare keyword and expect it to match.
+| Raw status | Matched text |
+|------------|--------------|
+| `S034_EINBERUFUNG_VERSCHICKT_KREIS` | `EINBERUFUNG_VERSCHICKT_KREIS` |
+| `S052_NICHT_BESTANDEN_KREIS` | `NICHT_BESTANDEN_KREIS` |
+| `S099_TERMIN_ABGESAGT` | `TERMIN_ABGESAGT` |
+| `S140_VERSCHOBEN` | `VERSCHOBEN` |
 
 ---
 
 ## 3. The mapping rules
 
-Checked in this order, with `strpos() !== false` substring matching:
+Checked in this order, with `strpos() !== false` substring matching. The keyword lists are the constants
+`UNASSIGN_KEYWORDS`, `COMPLETE_KEYWORDS` and `ASSIGN_KEYWORDS` of the resolver.
 
-| # | Middle segment contains | Handler | Action |
-|---|-------------------------|---------|--------|
-| 1 | `EINBERUFUNG` or `EINBERUFEN` | `angemeldet_…` | assign |
-| 2 | `TEILGENOMMEN` | `bestanden_…` | assign + complete |
-| 3 | `FEHLT`, `STORNIERT`, `ABGEBROCHEN` or `ZURUECKGESTELLT` | `abgemeldet_…` | unassign |
+| # | Status contains | Handler | Action |
+|---|-----------------|---------|--------|
+| 1 | `ABGELEHNT`, `NICHT_`, `ZURUECKGESTELLT`, `STORNIERT`, `ABGEBROCHEN`, `TERMIN_ABGESAGT`, `FEHLT_UNENTSCHULDIGT` or `UEBERREGIONALER_LEHRGANG` | `abgemeldet_…` | unassign |
+| 2 | `TEILGENOMMEN` or `BESTANDEN` | `bestanden_…` | assign + complete |
+| 3 | `EINBERUFUNG` or `ANGEMELDET_EIGENE` | `angemeldet_…` | assign |
 | — | anything else | `noop_…` | nothing |
 
-Consequences that regularly surprise people:
+Consequences worth knowing:
 
-- **`ANGEMELDET` does not enrol.** Rule 1 matches only the *Einberufung* family, despite the handler's name.
-- **`BESTANDEN` does not complete.** Rule 2 keys on `TEILGENOMMEN`, despite the handler's name.
-- Because rule 2 is a substring match, **`NICHT_TEILGENOMMEN` also assigns and completes** — the negation is not
-  detected. If that is wrong for your data, rule 2 needs a negative guard.
-- Rule ordering matters: a status containing both `EINBERUFEN` and `STORNIERT` assigns.
+- Rule 1 comes first on purpose: `NICHT_BESTANDEN` and `NICHT_TEILGENOMMEN` contain `BESTANDEN` / `TEILGENOMMEN`
+  but must unassign, not complete.
+- **`EINBERUFEN` (without *Verschickt*), `ANGEMELDET` and `FEHLT_ENTSCHULDIGT` are no-ops.** Only
+  `EINBERUFUNG_VERSCHICKT` and `ANGEMELDET_EIGENE_GEMEINDE` enrol.
+- `UEBERREGIONALER_LEHRGANG_…` statuses (S088, S094) always unassign.
 
 The handler class names describe the *outcome family they were named after*, not the statuses that reach them.
 Judge behaviour by the resolver, not by the class name.
@@ -172,20 +166,15 @@ This is the common case, and it is a one-file change in
 `participant_status_handler_resolver::resolve()`:
 
 ```php
-// Treat ANGEMELDET as an enrolment as well.
-if (
-    strpos($status, 'EINBERUFUNG') !== false ||
-    strpos($status, 'EINBERUFEN') !== false ||
-    strpos($status, 'ANGEMELDET') !== false
-) {
-    return $this->angemeldethandler;
-}
-
-// Do not let NICHT_TEILGENOMMEN complete the course.
-if (strpos($status, 'TEILGENOMMEN') !== false && strpos($status, 'NICHT') === false) {
-    return $this->bestandenhandler;
-}
+private const ASSIGN_KEYWORDS = [
+    'EINBERUFUNG',
+    'ANGEMELDET_EIGENE',
+    'ANGEMELDET_KREIS',   // newly treated as an enrolment
+];
 ```
+
+Add the keyword to the list of the outcome you want (`UNASSIGN_KEYWORDS`, `COMPLETE_KEYWORDS`, `ASSIGN_KEYWORDS`).
+Mind the rule order: unassign keywords win over the other two lists.
 
 Before changing anything, check what the API actually sends: run an import and read *Raw data (JSON)* on the run
 detail page, or query the statuses directly. A high *No action* count in the
@@ -251,7 +240,7 @@ Two test files cover this area directly:
 | `tests/lehrgang_status/participant_status_action_test.php` | The action factories and predicates |
 
 Both are pure unit tests with no database, so they are fast. Add a case for every status you add a rule for,
-including the near-miss (`NICHT_TEILGENOMMEN` against `TEILGENOMMEN`).
+including the near-miss (`NICHT_BESTANDEN` against `BESTANDEN`).
 
-End-to-end behaviour — that an `EINBERUFEN` participant really ends up enrolled — is covered by the service tests in
+End-to-end behaviour — that an `EINBERUFUNG_VERSCHICKT` participant really ends up enrolled — is covered by the service tests in
 `tests/services/`, which drive the whole sync with a fake endpoint. See [Testing](TESTING.md).
