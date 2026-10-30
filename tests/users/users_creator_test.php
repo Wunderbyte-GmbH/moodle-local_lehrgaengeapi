@@ -282,19 +282,23 @@ final class users_creator_test extends \advanced_testcase {
     }
 
     /**
-     * A deleted profile field must not break the user import.
+     * A deleted profile field is created again on demand: the import neither breaks nor
+     * silently drops the trainings.
      *
      * @covers \local_lehrgaengeapi\local\users\users_creator::create
      */
-    public function test_missing_profile_field_does_not_break_user_creation(): void {
+    public function test_missing_profile_field_is_created_on_demand(): void {
         global $DB;
         $this->resetAfterTest(true);
         $DB->delete_records('user_info_field', ['shortname' => ausbildungen_profile_field::SHORTNAME]);
 
-        $this->expectOutputRegex('/profile field "ausbildungen" not found/');
+        $this->expectOutputRegex('/profile field "ausbildungen" was missing/');
         $summary = (new users_creator())->create([$this->participant_with_ausbildungen('P-9', ['B-II'])]);
 
         $this->assertSame(1, $summary['created']);
-        $this->assertSame(0, $summary['ausbildungen_updated']);
+        $this->assertSame(1, $summary['ausbildungen_updated']);
+        $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'P-9'], MUST_EXIST);
+        $decoded = json_decode($this->stored_ausbildungen($userid), true);
+        $this->assertSame(['B-II'], array_column($decoded, 'kurzBezeichnung'));
     }
 }

@@ -193,20 +193,44 @@ final class ausbildungen_writer_test extends \advanced_testcase {
     }
 
     /**
-     * If the profile field does not exist (e.g. an admin deleted it) nothing is written
-     * and - above all - the import does not fail.
+     * If the profile field does not exist (version bumped before the upgrade step existed,
+     * field deleted, ...) the writer creates it and saves the value - no manual step needed.
      *
      * @covers \local_lehrgaengeapi\local\users\ausbildungen_writer::write
      */
-    public function test_write_without_profile_field_does_nothing_and_does_not_throw(): void {
+    public function test_write_creates_missing_profile_field_and_saves_value(): void {
         global $DB;
         $user = $this->getDataGenerator()->create_user();
         $DB->delete_records('user_info_field', ['shortname' => ausbildungen_profile_field::SHORTNAME]);
-        $rowsbefore = $DB->count_records('user_info_data');
+        $this->assertNull(ausbildungen_profile_field::get_fieldid());
 
-        // The writer reports the missing field once via mtrace.
-        $this->expectOutputRegex('/profile field "ausbildungen" not found/');
-        $this->assertFalse((new ausbildungen_writer())->write((int)$user->id, $this->participant()));
-        $this->assertSame($rowsbefore, $DB->count_records('user_info_data'));
+        // The writer reports the self-healing once via mtrace.
+        $this->expectOutputRegex('/profile field "ausbildungen" was missing/');
+        $changed = (new ausbildungen_writer())->write((int)$user->id, $this->participant());
+
+        $this->assertTrue($changed);
+        $this->assertNotNull(ausbildungen_profile_field::get_fieldid());
+        $this->assertCount(2, json_decode($this->stored((int)$user->id), true));
+    }
+
+    /**
+     * The field is only created once per writer, a second user does not trigger another lookup
+     * message, and no duplicate field is created.
+     *
+     * @covers \local_lehrgaengeapi\local\users\ausbildungen_writer::write
+     */
+    public function test_missing_profile_field_is_created_only_once(): void {
+        global $DB;
+        $user1 = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user();
+        $DB->delete_records('user_info_field', ['shortname' => ausbildungen_profile_field::SHORTNAME]);
+
+        $this->expectOutputRegex('/\A[^\n]*profile field "ausbildungen" was missing[^\n]*\n\z/');
+        $writer = new ausbildungen_writer();
+        $writer->write((int)$user1->id, $this->participant());
+        $writer->write((int)$user2->id, $this->participant());
+
+        $this->assertSame(1, $DB->count_records('user_info_field', ['shortname' => 'ausbildungen']));
+        $this->assertNotNull($this->stored((int)$user2->id));
     }
 }

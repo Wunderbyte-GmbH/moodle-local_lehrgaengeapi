@@ -149,7 +149,8 @@ final class participant_course_assigner_test extends \advanced_testcase {
 
         $report = (new participant_course_assigner())->assign([
             ['id' => 'D-1', 'status' => 'S050_TEILGENOMMEN_KREIS', 'vorname' => 'Anna'],
-            ['id' => 'D-2', 'status' => 'S084_BESTANDEN_LAND'],
+            // BESTANDEN now completes; ANGEMELDET outside the own organisation is still a no-op.
+            ['id' => 'D-2', 'status' => 'S010_ANGEMELDET_GEMEINDE'],
             ['id' => 'D-3', 'status' => 'S090_ZURUECKGESTELLT_LAND'],
             ['id' => 'D-4', 'status' => 'S090_ZURUECKGESTELLT_LAND'],
             ['id' => 'D-UNKNOWN', 'status' => 'S050_TEILGENOMMEN_KREIS'],

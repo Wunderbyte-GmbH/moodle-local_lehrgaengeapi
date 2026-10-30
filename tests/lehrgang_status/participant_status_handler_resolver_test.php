@@ -186,7 +186,8 @@ final class participant_status_handler_resolver_test extends \advanced_testcase 
             new abgemeldet_participant_status_handler()
         );
 
-        $handler = $resolver->resolve('  s033_einberufen_kreis  ');
+        // EINBERUFUNG (not EINBERUFEN) is an assign keyword since the status handling was reworked.
+        $handler = $resolver->resolve('  s034_einberufung_verschickt_kreis  ');
 
         $this->assertInstanceOf(angemeldet_participant_status_handler::class, $handler);
     }

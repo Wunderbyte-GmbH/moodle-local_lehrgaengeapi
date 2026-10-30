@@ -85,14 +85,25 @@ final class ausbildungen_writer {
      * @return int|null
      */
     private function get_fieldid(): ?int {
-        if (!$this->resolved) {
-            $this->fieldid = ausbildungen_profile_field::get_fieldid();
-            $this->resolved = true;
-            if ($this->fieldid === null) {
-                mtrace('local_lehrgaengeapi: profile field "' . ausbildungen_profile_field::SHORTNAME
-                    . '" not found - Ausbildungen are not saved.');
-            }
+        if ($this->resolved) {
+            return $this->fieldid;
         }
+        $this->resolved = true;
+
+        $this->fieldid = ausbildungen_profile_field::get_fieldid();
+        if ($this->fieldid !== null) {
+            return $this->fieldid;
+        }
+
+        try {
+            $this->fieldid = ausbildungen_profile_field::ensure_exists();
+            mtrace('local_lehrgaengeapi: profile field "' . ausbildungen_profile_field::SHORTNAME
+                . '" was missing - created it.');
+        } catch (\Throwable $e) {
+            mtrace('local_lehrgaengeapi: could not create profile field "' . ausbildungen_profile_field::SHORTNAME
+                . '": ' . $e->getMessage() . ' - Ausbildungen are not saved.');
+        }
+
         return $this->fieldid;
     }
 
