@@ -83,7 +83,8 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
             foreach ($allapiendpoints as $apiendpoint) {
                 try {
                     $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
-                    $summary[$apiendpoint['abbr']] = $recorder->record((int)$run->id, $service->sync($apiendpoint, $searchcriteria));
+                    $summary[$apiendpoint['abbr']] =
+                        $recorder->record((int)$run->id, $service->sync($apiendpoint, $searchcriteria));
                 } catch (\Throwable $e) {
                     $tenantdetail = $e->getMessage();
                     if ($e instanceof api_exception && $e->get_response_body() !== '') {

@@ -263,7 +263,6 @@ final class participant_course_assigner {
                 $report['completed']++;
             }
         }
-
     }
 
     /**
