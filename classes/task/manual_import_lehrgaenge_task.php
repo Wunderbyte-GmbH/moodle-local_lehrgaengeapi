@@ -28,6 +28,7 @@ use local_lehrgaengeapi\factory;
 use local_lehrgaengeapi\local\tenants\tenants;
 use local_lehrgaengeapi\local\repository\import_run_repository;
 use local_lehrgaengeapi\api\exceptions\api_exception;
+use local_lehrgaengeapi\local\services\import_result_recorder;
 
 /**
  * Adhoc task: manual year-filtered Lehrgaenge import, triggered from the admin UI.
@@ -78,10 +79,11 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
         try {
             $allapiendpoints = tenants::get_all_with_keys();
             $summary = [];
+            $recorder = new import_result_recorder();
             foreach ($allapiendpoints as $apiendpoint) {
                 try {
                     $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
-                    $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint, $searchcriteria);
+                    $summary[$apiendpoint['abbr']] = $recorder->record((int)$run->id, $service->sync($apiendpoint, $searchcriteria));
                 } catch (\Throwable $e) {
                     $tenantdetail = $e->getMessage();
                     if ($e instanceof api_exception && $e->get_response_body() !== '') {
@@ -94,7 +96,6 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
                         'skipped' => 0,
                         'total' => 0,
                         'failed' => [],
-                        'userreport' => [],
                         'unfoundhlfscourses' => [],
                         'error' => $tenantdetail,
                     ];
@@ -103,6 +104,7 @@ final class manual_import_lehrgaenge_task extends \core\task\adhoc_task {
             }
             mtrace('local_lehrgaengeapi: manual import ' . $year . ' summary: ' . json_encode($summary));
             $runs->mark_success($run->id, $summary);
+            $recorder->purge_old_runs();
             $this->notify_user($userid, $year, import_run_repository::STATUS_SUCCESS);
         } catch (\Throwable $e) {
             $detail = $e->getMessage();

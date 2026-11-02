@@ -33,6 +33,7 @@ use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\services\participants_sync_service;
 use local_lehrgaengeapi\local\course\alt_course_finder;
 use local_lehrgaengeapi\local\course\course_type_resolver;
+use local_lehrgaengeapi\local\course\collection_course;
 
 /**
  * Lehrgaenge sync service.
@@ -85,7 +86,7 @@ final class lehrgaenge_sync_service {
      * @param array $tenant
      * @param array<string,mixed>|string|null $searchcriteria Optional filter,
      *        e.g. ['lehrgangVon' => 'YYYY-01-01', 'lehrgangBis' => 'YYYY-12-31'] for a manual year import.
-     * @return array{created:int,skipped:int,total:int,failed:array,userreport:array,unfoundhlfscourses:array}
+     * @return array{created:int,skipped:int,total:int,failed:array,courseresults:array,unfoundhlfscourses:array}
      * @throws \Throwable
      */
     public function sync($tenant, $searchcriteria = null): array {
@@ -96,7 +97,7 @@ final class lehrgaenge_sync_service {
                 'skipped' => 0,
                 'total' => 0,
                 'failed' => [],
-                'userreport' => [],
+                'courseresults' => [],
                 'unfoundhlfscourses' => [],
             ];
         }
@@ -113,9 +114,8 @@ final class lehrgaenge_sync_service {
 
         $hlfscompany = $this->get_main_company();
         $company = $this->tenantcreator->get_tenant($tenant);
-        $userreport = [];
+        $courseresults = [];
         $unfoundhlfscourses = [];
-        $participantdetails = [];
         foreach ($items as $item) {
             if (!is_array($item)) {
                 $skipped++;
@@ -132,6 +132,25 @@ final class lehrgaenge_sync_service {
 
             $externalid = (string)($item['id'] ?? '');
             if ($externalid === '') {
+                $skipped++;
+                continue;
+            }
+
+            // The Florix collection Lehrgang has no Moodle course: take over its people,
+            // Ausbildungen and tenant, but create no course, no mapping and no enrolment.
+            if (collection_course::is_collection($item)) {
+                $report = [];
+                try {
+                    $report = $this->participantssync->sync_users_only($externalid, $tenant);
+                } catch (\Throwable $e) {
+                    $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
+                }
+                $courseresults[] = course_result_row::build(
+                    (string)($tenant['abbr'] ?? ''),
+                    $item,
+                    (object)['id' => 0, 'shortname' => ''],
+                    $report
+                );
                 $skipped++;
                 continue;
             }
@@ -169,21 +188,18 @@ final class lehrgaenge_sync_service {
                     $DB->set_field('course', 'idnumber', $externalid, ['id' => $existing->id]);
                 }
                 $this->coursemap->set_courseid($externalid, (int)$existing->id);
+                $report = [];
                 try {
-                    $userreport[$existing->id] = $this->split_participant_details(
-                        $this->participantssync->sync_for_course(
-                            $externalid,
-                            (int)$existing->id,
-                            $this->build_assignment_course_payload($item, (string)$existing->shortname),
-                            $tenant
-                        ),
+                    $report = $this->participantssync->sync_for_course(
                         $externalid,
                         (int)$existing->id,
-                        $participantdetails
+                        $this->build_assignment_course_payload($item, (string)$existing->shortname),
+                        $tenant
                     );
                 } catch (\Throwable $e) {
                     $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
                 }
+                $courseresults[] = course_result_row::build((string)($tenant['abbr'] ?? ''), $item, $existing, $report);
                 $skipped++;
                 continue;
             }
@@ -213,21 +229,18 @@ final class lehrgaenge_sync_service {
                 continue;
             }
             $currentcompany->add_course($course);
+            $report = [];
             try {
-                $userreport[$course->id] = $this->split_participant_details(
-                    $this->participantssync->sync_for_course(
-                        $externalid,
-                        (int)$course->id,
-                        $this->build_assignment_course_payload($item, (string)$course->shortname),
-                        $tenant
-                    ),
+                $report = $this->participantssync->sync_for_course(
                     $externalid,
                     (int)$course->id,
-                    $participantdetails
+                    $this->build_assignment_course_payload($item, (string)$course->shortname),
+                    $tenant
                 );
             } catch (\Throwable $e) {
                 $failed[] = ['id' => $externalid, 'error' => $e->getMessage()];
             }
+            $courseresults[] = course_result_row::build((string)($tenant['abbr'] ?? ''), $item, $course, $report);
             $this->coursemap->set_courseid($externalid, (int)$course->id);
             $created++;
         }
@@ -237,9 +250,8 @@ final class lehrgaenge_sync_service {
             'skipped' => $skipped,
             'total' => $total,
             'failed' => $failed,
-            'userreport' => $userreport,
+            'courseresults' => $courseresults,
             'unfoundhlfscourses' => $unfoundhlfscourses,
-            'participantdetails' => $participantdetails,
         ];
     }
 
@@ -285,26 +297,6 @@ final class lehrgaenge_sync_service {
             (string)($item['kurzbezeichnung'] ?? ''),
             (string)($item['bezeichnung'] ?? '')
         );
-    }
-
-    /**
-     * Move the per-participant details out of a Lehrgang report into their own structure.
-     *
-     * The report is keyed by Moodle course id, so for a collection course the Lehrgaenge
-     * overwrite each other there. The details are therefore keyed by course id and Florix id.
-     *
-     * @param array $report Result of participantssync->sync_for_course().
-     * @param string $externalid External Lehrgang.id.
-     * @param int $courseid Moodle course id.
-     * @param array $details Collected details (by reference).
-     * @return array The report without the details.
-     */
-    private function split_participant_details(array $report, string $externalid, int $courseid, array &$details): array {
-        if (isset($report['assignments']['details'])) {
-            $details[$courseid][$externalid] = $report['assignments']['details'];
-            unset($report['assignments']['details']);
-        }
-        return $report;
     }
 
     /**

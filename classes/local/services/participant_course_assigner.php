@@ -62,12 +62,6 @@ final class participant_course_assigner {
     /** @var object|null */
     private object|null $manualinstance;
 
-    /** @var bool Whether per-participant details are collected for the current course. */
-    private bool $collectdetails = false;
-
-    /** @var array<int,array<string,mixed>> Per-participant outcomes of the current course. */
-    private array $details = [];
-
     /**
      * Constructor.
      */
@@ -124,18 +118,12 @@ final class participant_course_assigner {
         $this->set_manualinstance($courseid);
         $this->set_context($courseid);
         $this->set_course($course);
-        $this->collectdetails = $this->is_detail_course($courseid);
-        $this->details = [];
 
         foreach ($participants as $participant) {
             $this->subscribe_participant(
                 $participant,
                 $report
             );
-        }
-
-        if ($this->collectdetails) {
-            $report['details'] = $this->details;
         }
 
         return $report;
@@ -189,41 +177,6 @@ final class participant_course_assigner {
     }
 
     /**
-     * Whether per-participant details are stored in the report for this course.
-     *
-     * @param int $courseid
-     * @return bool
-     */
-    private function is_detail_course(int $courseid): bool {
-        $configured = trim((string)get_config('local_lehrgaengeapi', 'detailcourseids'));
-        if ($configured === '') {
-            return false;
-        }
-        $ids = array_map('intval', array_filter(array_map('trim', explode(',', $configured)), 'strlen'));
-        return in_array($courseid, $ids, true);
-    }
-
-    /**
-     * Remember what happened to one participant (only when details are collected).
-     *
-     * @param array $participant
-     * @param int $userid Moodle user id, 0 if the participant has no Moodle user.
-     * @param string $outcome
-     * @return void
-     */
-    private function record_detail(array $participant, int $userid, string $outcome): void {
-        if (!$this->collectdetails) {
-            return;
-        }
-        $this->details[] = [
-            'participantid' => (string)($participant['id'] ?? ''),
-            'userid' => $userid,
-            'status' => (string)($participant['status'] ?? ''),
-            'outcome' => $outcome,
-        ];
-    }
-
-    /**
      * Check and subscribe participant to course completion.
      *
      * @param array $participant
@@ -238,21 +191,18 @@ final class participant_course_assigner {
         }
         if (!isset($participant['id'])) {
             $report['skipped']++;
-            $this->record_detail($participant, 0, 'skipped_noid');
             return;
         }
 
         $id = trim((string)($participant['id'] ?? ''));
         if ($id === '') {
             $report['skipped']++;
-            $this->record_detail($participant, 0, 'skipped_noid');
             return;
         }
 
         $map = $this->usermap->get_by_externalid($id);
         if (!$map || empty($map->userid)) {
             $report['skipped']++;
-            $this->record_detail($participant, 0, 'skipped_nouser');
             return;
         }
 
@@ -261,7 +211,6 @@ final class participant_course_assigner {
         $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], 'id', IGNORE_MISSING);
         if (!$user) {
             $report['skipped']++;
-            $this->record_detail($participant, $userid, 'skipped_nouser');
             return;
         }
 
@@ -271,23 +220,18 @@ final class participant_course_assigner {
 
         if ($action->should_not_do_anything()) {
             $report['noop']++;
-            $this->record_detail($participant, $userid, 'noop');
             return;
         }
-
-        $outcome = 'skipped';
 
         if ($action->should_assign()) {
             $isenrolled = is_enrolled($this->context, $userid, '', true);
 
             if ($isenrolled) {
                 $report['alreadyenrolled']++;
-                $outcome = 'alreadyenrolled';
             } else if ($this->plugin && $this->manualinstance) {
                 $this->plugin->enrol_user($this->manualinstance, $userid, (int)$this->manualinstance->roleid);
                 $report['enrolled']++;
                 $isenrolled = true;
-                $outcome = 'enrolled';
             } else {
                 $report['skipped']++;
             }
@@ -306,10 +250,8 @@ final class participant_course_assigner {
                 if ($userenrolment) {
                     $this->plugin->unenrol_user($this->manualinstance, $userid);
                     $report['unenrolled']++;
-                    $outcome = 'unenrolled';
                 } else {
                     $report['alreadyunenrolled']++;
-                    $outcome = 'alreadyunenrolled';
                 }
             } else {
                 $report['skipped']++;
@@ -319,11 +261,9 @@ final class participant_course_assigner {
         if ($action->should_complete()) {
             if ($this->mark_course_completed($userid)) {
                 $report['completed']++;
-                $outcome .= '+completed';
             }
         }
 
-        $this->record_detail($participant, $userid, $outcome);
     }
 
     /**

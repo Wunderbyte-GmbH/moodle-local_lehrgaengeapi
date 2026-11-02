@@ -111,4 +111,33 @@ final class participants_sync_service {
             'assignments' => $assignsummary,
         ];
     }
+
+    /**
+     * Sync only the users of a Lehrgang: create them, store their Ausbildungen and remember the tenant.
+     *
+     * Used for the Florix collection Lehrgang, which has no Moodle course - nobody is enrolled.
+     *
+     * @param string $externalid External Lehrgang ID.
+     * @param array $tenant Tenant payload (decoded).
+     * @return array{florixid:string,users:array,assignments:array}
+     * @throws \Throwable
+     */
+    public function sync_users_only(string $externalid, array $tenant): array {
+        $delayms = (int)get_config('local_lehrgaengeapi', 'requestdelayms');
+        if ($delayms > 0) {
+            usleep($delayms * 1000);
+        }
+
+        $participants = $this->endpoint->participants($tenant, $externalid);
+        $users = ['created' => 0, 'existing' => 0, 'skipped' => 0, 'total' => 0, 'ausbildungen_updated' => 0];
+        if (is_array($participants) && $participants) {
+            $users = $this->usercreator->create($participants, (string)($tenant['abbr'] ?? ''));
+        }
+
+        return [
+            'florixid' => $externalid,
+            'users' => $users,
+            'assignments' => [],
+        ];
+    }
 }

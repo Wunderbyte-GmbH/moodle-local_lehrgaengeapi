@@ -135,11 +135,11 @@ if ($hassiteconfig) {
         ));
 
         $settings->add(new admin_setting_configtext(
-            $componentname . '/detailcourseids',
-            get_string('detailcourseids', $componentname),
-            get_string('detailcourseidsdesc', $componentname),
-            '',
-            '/^\s*(\d+(\s*,\s*\d+)*)?\s*$/'
+            $componentname . '/collectionkurzbezeichnung',
+            get_string('collectionkurzbezeichnung', $componentname),
+            get_string('collectionkurzbezeichnungdesc', $componentname),
+            \local_lehrgaengeapi\local\course\collection_course::DEFAULT_KURZBEZEICHNUNG,
+            PARAM_TEXT
         ));
 
         $settings->add(new admin_setting_heading(

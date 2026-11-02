@@ -135,4 +135,48 @@ final class schema_test extends \advanced_testcase {
         $run = (new import_run_repository())->start(2024, null);
         $this->assertSame('import', $DB->get_field('local_lehrgaengeapi_import_run', 'runtype', ['id' => $run->id]));
     }
+
+    /**
+     * The course result table exists with one counter column per report figure.
+     *
+     * @coversNothing
+     */
+    public function test_course_result_table_exists(): void {
+        global $DB;
+        $dbman = $DB->get_manager();
+        $table = new \xmldb_table('local_lehrgaengeapi_course_result');
+
+        $this->assertTrue($dbman->table_exists($table));
+        $fields = [
+            'id', 'runid', 'tenantabbr', 'courseid', 'courseshortname', 'externalid', 'kurzbezeichnung',
+            'userscreated', 'usersexisting', 'usersskipped',
+            'enrolled', 'alreadyenrolled', 'unenrolled', 'alreadyunenrolled', 'noop', 'completed', 'assignskipped',
+            'total', 'timecreated',
+        ];
+        foreach ($fields as $field) {
+            $this->assertTrue($dbman->field_exists($table, $field), "Missing field {$field}");
+        }
+    }
+
+    /**
+     * Counters default to 0, so a row with only the identifying fields is valid.
+     *
+     * @coversNothing
+     */
+    public function test_course_result_counters_default_to_zero(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $id = $DB->insert_record('local_lehrgaengeapi_course_result', (object)[
+            'runid' => 1,
+            'courseid' => 2,
+            'externalid' => 'LG-1',
+            'timecreated' => time(),
+        ]);
+
+        $row = $DB->get_record('local_lehrgaengeapi_course_result', ['id' => $id], '*', MUST_EXIST);
+        $this->assertSame(0, (int)$row->enrolled);
+        $this->assertSame(0, (int)$row->total);
+        $this->assertNull($row->tenantabbr);
+    }
 }

@@ -149,7 +149,6 @@ final class sync_lehrgaenge_task_test extends \advanced_testcase {
             $this->assertArrayHasKey('skipped', $tenantsummary);
             $this->assertArrayHasKey('total', $tenantsummary);
             $this->assertArrayHasKey('failed', $tenantsummary);
-            $this->assertArrayHasKey('userreport', $tenantsummary);
             $this->assertArrayHasKey('unfoundhlfscourses', $tenantsummary);
         }
     }
@@ -232,6 +231,32 @@ final class sync_lehrgaenge_task_test extends \advanced_testcase {
             $this->assertCount(0, $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete'));
         } finally {
             $lock->release();
+        }
+    }
+
+    /**
+     * The run log keeps only the totals per tenant; per-Lehrgang results live in their own
+     * table, so the old per-course userreport is no longer written.
+     *
+     * @covers \local_lehrgaengeapi\task\sync_lehrgaenge_task::execute
+     */
+    public function test_execute_keeps_only_totals_in_the_run_summary(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $task = new sync_lehrgaenge_task();
+        ob_start();
+        $task->execute();
+        ob_end_clean();
+
+        $run = $DB->get_record('local_lehrgaengeapi_import_run', [], '*', MUST_EXIST);
+        $decoded = import_run_repository::decode_summary($run);
+        $this->assertNotEmpty($decoded);
+        foreach ($decoded as $tenantsummary) {
+            $this->assertArrayHasKey('total', $tenantsummary);
+            $this->assertArrayNotHasKey('courseresults', $tenantsummary);
+            $this->assertArrayNotHasKey('userreport', $tenantsummary);
+            $this->assertArrayNotHasKey('participantdetails', $tenantsummary);
         }
     }
 }

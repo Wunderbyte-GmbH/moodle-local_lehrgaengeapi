@@ -169,4 +169,31 @@ final class manual_import_lehrgaenge_task_test extends \advanced_testcase {
 
         $this->assertCount(0, $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete'));
     }
+
+    /**
+     * The run log keeps only the totals per tenant; per-Lehrgang results live in their own
+     * table, so the old per-course userreport is no longer written.
+     *
+     * @covers \local_lehrgaengeapi\task\manual_import_lehrgaenge_task::execute
+     */
+    public function test_execute_keeps_only_totals_in_the_run_summary(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $task = new manual_import_lehrgaenge_task();
+        $task->set_custom_data(['year' => 2024, 'userid' => 0]);
+        ob_start();
+        $task->execute();
+        ob_end_clean();
+
+        $run = $DB->get_record('local_lehrgaengeapi_import_run', [], '*', MUST_EXIST);
+        $decoded = import_run_repository::decode_summary($run);
+        $this->assertNotEmpty($decoded);
+        foreach ($decoded as $tenantsummary) {
+            $this->assertArrayHasKey('total', $tenantsummary);
+            $this->assertArrayNotHasKey('courseresults', $tenantsummary);
+            $this->assertArrayNotHasKey('userreport', $tenantsummary);
+            $this->assertArrayNotHasKey('participantdetails', $tenantsummary);
+        }
+    }
 }

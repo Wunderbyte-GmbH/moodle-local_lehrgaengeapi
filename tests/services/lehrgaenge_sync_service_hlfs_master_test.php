@@ -208,74 +208,6 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
     }
 
     /**
-     * The details of several Lehrgaenge of one collection course are kept apart, while the
-     * per-course report stays free of them.
-     *
-     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::split_participant_details
-     */
-    public function test_split_participant_details_keeps_lehrgaenge_of_one_course_apart(): void {
-        $service = $this->build_service($this->fake_endpoint([]));
-        $method = new \ReflectionMethod($service, 'split_participant_details');
-        $method->setAccessible(true);
-
-        $first = [
-            'florixid' => 'A',
-            'assignments' => ['noop' => 1, 'details' => [['participantid' => 'p1', 'outcome' => 'noop']]],
-        ];
-        $second = [
-            'florixid' => 'B',
-            'assignments' => ['noop' => 0, 'details' => [['participantid' => 'p2', 'outcome' => 'enrolled']]],
-        ];
-        $without = ['florixid' => 'C', 'assignments' => ['noop' => 0]];
-
-        $details = [];
-        $cleanedfirst = $method->invokeArgs($service, [$first, 'A', 417, &$details]);
-        $method->invokeArgs($service, [$second, 'B', 417, &$details]);
-        $cleanedwithout = $method->invokeArgs($service, [$without, 'C', 417, &$details]);
-
-        $this->assertSame('noop', $details[417]['A'][0]['outcome']);
-        $this->assertSame('enrolled', $details[417]['B'][0]['outcome']);
-        $this->assertArrayNotHasKey('C', $details[417]);
-        $this->assertArrayNotHasKey('details', $cleanedfirst['assignments']);
-        $this->assertSame(1, $cleanedfirst['assignments']['noop']);
-        $this->assertSame($without, $cleanedwithout);
-    }
-
-    /**
-     * For a collection course in detailcourseids the sync result lists every participant of
-     * every Lehrgang with the action taken, and the per-course report no longer carries them.
-     *
-     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
-     */
-    public function test_sync_reports_participant_details_per_course_and_lehrgang(): void {
-        global $DB;
-        $this->prepare_environment();
-
-        $this->create_master_course();
-        $this->create_hlfs_company();
-
-        $service = $this->build_service($this->fake_endpoint([
-            $this->lehrgang('LG-PD-100', 'PDX', 'Details A'),
-            $this->lehrgang('LG-PD-200', 'PDX', 'Details B'),
-        ], [
-            'LG-PD-100' => [$this->participant('p-pd-100', 'Anna', 'Muster')],
-            'LG-PD-200' => [$this->participant('p-pd-200', 'Bob', 'Muster')],
-        ]));
-
-        // The first run creates the collection course; the second one reports on it.
-        $service->sync(self::HLFS);
-        $alt = $DB->get_record('course', ['shortname' => 'HLFS-PDX_alt'], '*', MUST_EXIST);
-        set_config('detailcourseids', (string)$alt->id, 'local_lehrgaengeapi');
-
-        $summary = $service->sync(self::HLFS);
-
-        $this->assertArrayHasKey((int)$alt->id, $summary['participantdetails']);
-        $this->assertSame(['LG-PD-100', 'LG-PD-200'], array_keys($summary['participantdetails'][(int)$alt->id]));
-        $this->assertSame('alreadyenrolled', $summary['participantdetails'][(int)$alt->id]['LG-PD-100'][0]['outcome']);
-        $this->assertArrayNotHasKey('details', $summary['userreport'][(int)$alt->id]['assignments']);
-    }
-
-    /**
      * Common setup for all tests.
      *
      * @return void
@@ -449,5 +381,74 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
                 return [];
             }
         };
+    }
+
+    /**
+     * Several Lehrgaenge that end up in the same collection course each get their own result
+     * row - they no longer overwrite each other under the course id.
+     *
+     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
+     */
+    public function test_sync_reports_one_course_result_per_lehrgang(): void {
+        global $DB;
+        $this->prepare_environment();
+
+        $this->create_master_course();
+        $this->create_hlfs_company();
+
+        $service = $this->build_service($this->fake_endpoint([
+            $this->lehrgang('LG-CR-100', 'CRX', 'Sammel A'),
+            $this->lehrgang('LG-CR-200', 'CRX', 'Sammel B'),
+        ]));
+
+        $summary = $service->sync(self::HLFS);
+
+        $alt = $DB->get_record('course', ['shortname' => 'HLFS-CRX_alt'], '*', MUST_EXIST);
+        $this->assertArrayNotHasKey('userreport', $summary);
+        $this->assertCount(2, $summary['courseresults']);
+        $this->assertSame(['LG-CR-100', 'LG-CR-200'], array_column($summary['courseresults'], 'externalid'));
+        foreach ($summary['courseresults'] as $row) {
+            $this->assertSame((int)$alt->id, $row['courseid']);
+            $this->assertSame('HLFS-CRX_alt', $row['courseshortname']);
+            $this->assertSame('HLFS', $row['tenantabbr']);
+            $this->assertSame('CRX', $row['kurzbezeichnung']);
+        }
+    }
+
+    /**
+     * The Florix collection Lehrgang (Kurzbezeichnung MOODLE-ALTBESTAND) creates its users,
+     * but no course, no course mapping and no enrolment. It is reported with course id 0.
+     *
+     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
+     */
+    public function test_collection_lehrgang_creates_users_but_no_course(): void {
+        global $DB;
+        $this->prepare_environment();
+        $this->create_hlfs_company();
+        unset_config('collectionkurzbezeichnung', 'local_lehrgaengeapi');
+        $coursesbefore = $DB->count_records('course');
+
+        $service = $this->build_service($this->fake_endpoint(
+            [$this->lehrgang('LG-AB-1', 'MOODLE-ALTBESTAND', 'Altbestand')],
+            ['LG-AB-1' => [['id' => 'AB-100'] + $this->participant('ab-100', 'Alt', 'Bestand')]]
+        ));
+
+        $summary = $service->sync(self::HLFS);
+
+        $this->assertSame($coursesbefore, $DB->count_records('course'));
+        $this->assertFalse($DB->record_exists('local_lehrgaengeapi_coursemap', ['externalid' => 'LG-AB-1']));
+        $this->assertSame(0, $summary['created']);
+        $this->assertSame(1, $summary['skipped']);
+
+        $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'AB-100'], MUST_EXIST);
+        $this->assertSame(0, $DB->count_records('user_enrolments', ['userid' => $userid]));
+
+        $this->assertCount(1, $summary['courseresults']);
+        $row = $summary['courseresults'][0];
+        $this->assertSame(0, $row['courseid']);
+        $this->assertSame('', $row['courseshortname']);
+        $this->assertSame('LG-AB-1', $row['externalid']);
+        $this->assertSame(1, $row['userscreated']);
+        $this->assertSame(0, $row['enrolled']);
     }
 }

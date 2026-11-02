@@ -22,6 +22,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_lehrgaengeapi\local\repository\course_result_repository;
 use local_lehrgaengeapi\local\repository\import_run_repository;
 use local_lehrgaengeapi\local\services\ausbildungen_linker;
 use local_lehrgaengeapi\table\link_result_table;
@@ -121,6 +122,13 @@ if ($id) {
         if ($failedentries) {
             echo $OUTPUT->heading(get_string('failedlehrgaenge', 'local_lehrgaengeapi'), 4);
             echo html_writer::tag('ul', implode('', $failedentries));
+        }
+        if ((new course_result_repository())->has_rows((int)$run->id)) {
+            echo html_writer::link(
+                new moodle_url('/local/lehrgaengeapi/admin/import_results.php', ['runid' => $run->id]),
+                get_string('importresultslink', 'local_lehrgaengeapi'),
+                ['class' => 'btn btn-primary mb-3']
+            );
         }
         $unfoundtable = new html_table();
         $unfoundtable->attributes['class'] = 'generaltable';

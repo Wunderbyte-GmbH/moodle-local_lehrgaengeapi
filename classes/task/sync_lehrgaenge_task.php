@@ -28,6 +28,7 @@ namespace local_lehrgaengeapi\task;
 use local_lehrgaengeapi\factory;
 use local_lehrgaengeapi\local\tenants\tenants;
 use local_lehrgaengeapi\local\repository\import_run_repository;
+use local_lehrgaengeapi\local\services\import_result_recorder;
 use local_lehrgaengeapi\api\exceptions\api_rate_limited_exception;
 use local_lehrgaengeapi\api\exceptions\api_unauthorized_exception;
 use local_lehrgaengeapi\api\exceptions\api_exception;
@@ -75,10 +76,11 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
             // Foreach here.
             $allapiendpoints = tenants::get_all_with_keys();
             $summary = [];
+            $recorder = new import_result_recorder();
             foreach ($allapiendpoints as $apiendpoint) {
                 try {
                     $service = factory::lehrgaenge_sync_service($apiendpoint['apikey']);
-                    $summary[$apiendpoint['abbr']] = $service->sync($apiendpoint);
+                    $summary[$apiendpoint['abbr']] = $recorder->record((int)$run->id, $service->sync($apiendpoint));
                 } catch (api_rate_limited_exception | api_unauthorized_exception $e) {
                     // Not tenant-specific: retrying the remaining tenants would just hammer
                     // the API. Abort so the outer handler records it and faildelay applies.
@@ -98,7 +100,6 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
                         'skipped' => 0,
                         'total' => 0,
                         'failed' => [],
-                        'userreport' => [],
                         'unfoundhlfscourses' => [],
                         'error' => $tenantdetail,
                     ];
@@ -107,6 +108,7 @@ final class sync_lehrgaenge_task extends \core\task\scheduled_task {
             }
             mtrace('local_lehrgaengeapi: lehrgaenge sync summary: ' . json_encode($summary));
             $runs->mark_success($run->id, $summary);
+            $recorder->purge_old_runs();
             import_notifier::notify_configured_users(import_run_repository::STATUS_SUCCESS);
         } catch (api_rate_limited_exception $e) {
             $retry = method_exists($e, 'get_retry_after_seconds') ? $e->get_retry_after_seconds() : null;

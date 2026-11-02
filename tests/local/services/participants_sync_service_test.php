@@ -127,4 +127,47 @@ final class participants_sync_service_test extends \advanced_testcase {
         $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'PS-1'], MUST_EXIST);
         $this->assertSame(['FD'], (new usertenant_repository())->get_tenants($userid));
     }
+
+    /**
+     * For the Florix collection Lehrgang only users, their Ausbildungen and the tenant are
+     * stored - nobody is enrolled anywhere, whatever the participant status says.
+     *
+     * @covers \local_lehrgaengeapi\local\services\participants_sync_service::sync_users_only
+     */
+    public function test_sync_users_only_creates_users_without_enrolment(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        set_config('requestdelayms', 0, 'local_lehrgaengeapi');
+
+        $service = new participants_sync_service(
+            $this->endpoint([[
+                'id' => 'AB-1',
+                'initialId' => 'ab-1',
+                'vorname' => 'Alt',
+                'nachname' => 'Bestand',
+                'status' => 'S050_TEILGENOMMEN_KREIS',
+                'ausbildungen' => [[
+                    'bezeichnung' => 'Truppmann',
+                    'kurzbezeichnung' => 'F-I',
+                    'von' => '1999-03-01',
+                    'bis' => '1999-03-10',
+                    'status' => 'BESTANDEN',
+                ]],
+            ]]),
+            new users_creator(),
+            new participant_course_assigner()
+        );
+
+        $report = $service->sync_users_only('L-AB', ['name' => 'Landkreis Fulda', 'abbr' => 'FD', 'apikey' => 'x']);
+
+        $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'AB-1'], MUST_EXIST);
+        $this->assertSame(['FD'], (new usertenant_repository())->get_tenants($userid));
+        $this->assertSame(0, $DB->count_records('user_enrolments', ['userid' => $userid]));
+        $this->assertSame(0, $DB->count_records('course_completions', ['userid' => $userid]));
+
+        $this->assertSame('L-AB', $report['florixid']);
+        $this->assertSame(1, $report['users']['created']);
+        $this->assertSame(1, $report['users']['total']);
+        $this->assertSame([], $report['assignments']);
+    }
 }

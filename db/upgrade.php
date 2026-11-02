@@ -177,5 +177,37 @@ function xmldb_local_lehrgaengeapi_upgrade(int $oldversion): bool {
 
         upgrade_plugin_savepoint(true, 2026103000, 'local', 'lehrgaengeapi');
     }
+    // 2026110200: Import results per course and Lehrgang.
+    if ($oldversion < 2026110200) {
+        $table = new xmldb_table('local_lehrgaengeapi_course_result');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('runid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('tenantabbr', XMLDB_TYPE_CHAR, '20', null, null, null, null);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('courseshortname', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $table->add_field('externalid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('kurzbezeichnung', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+            $counters = [
+                'userscreated', 'usersexisting', 'usersskipped',
+                'enrolled', 'alreadyenrolled', 'unenrolled', 'alreadyunenrolled',
+                'noop', 'completed', 'assignskipped', 'total',
+            ];
+            foreach ($counters as $counter) {
+                $table->add_field($counter, XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            }
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('runid_fk', XMLDB_KEY_FOREIGN, ['runid'], 'local_lehrgaengeapi_import_run', ['id']);
+            $table->add_index('runid_courseid_ix', XMLDB_INDEX_NOTUNIQUE, ['runid', 'courseid']);
+            $table->add_index('runid_externalid_ix', XMLDB_INDEX_NOTUNIQUE, ['runid', 'externalid']);
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026110200, 'local', 'lehrgaengeapi');
+    }
+
     return true;
 }
