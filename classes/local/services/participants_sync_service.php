@@ -102,7 +102,7 @@ final class participants_sync_service {
                 ],
             ];
         }
-        $usersummary = $this->usercreator->create($participants);
+        $usersummary = $this->usercreator->create($participants, (string)($tenant['abbr'] ?? ''));
         $assignsummary = $this->assigner->assign($participants, $courseid, $course);
 
         return [

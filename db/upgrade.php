@@ -128,5 +128,54 @@ function xmldb_local_lehrgaengeapi_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026101600, 'local', 'lehrgaengeapi');
     }
 
+    // 2026103000: Ausbildungen linking - remembered tenants, link report, run type.
+    if ($oldversion < 2026103000) {
+        $table = new xmldb_table('local_lehrgaengeapi_import_run');
+        $field = new xmldb_field('runtype', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'import', 'summary');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $table = new xmldb_table('local_lehrgaengeapi_usertenant');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('tenantabbr', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('userid_fk', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+            $table->add_index('userid_tenantabbr_uix', XMLDB_INDEX_UNIQUE, ['userid', 'tenantabbr']);
+
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_lehrgaengeapi_link_result');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('runid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('tenantabbr', XMLDB_TYPE_CHAR, '20', null, null, null, null);
+            $table->add_field('bezeichnung', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $table->add_field('kurzbezeichnung', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+            $table->add_field('von', XMLDB_TYPE_CHAR, '10', null, null, null, null);
+            $table->add_field('bis', XMLDB_TYPE_CHAR, '10', null, null, null, null);
+            $table->add_field('apistatus', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+            $table->add_field('outcome', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('message', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('runid_fk', XMLDB_KEY_FOREIGN, ['runid'], 'local_lehrgaengeapi_import_run', ['id']);
+            $table->add_index('runid_outcome_ix', XMLDB_INDEX_NOTUNIQUE, ['runid', 'outcome']);
+            $table->add_index('userid_ix', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026103000, 'local', 'lehrgaengeapi');
+    }
     return true;
 }

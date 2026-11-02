@@ -142,4 +142,43 @@ final class import_notifier_test extends \advanced_testcase {
 
         $this->assertCount(0, $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete'));
     }
+
+    /**
+     * A single user gets a notification with the given texts and a link to the import history.
+     *
+     * @covers \local_lehrgaengeapi\local\notification\import_notifier::notify_user
+     */
+    public function test_notify_user_sends_given_texts(): void {
+        $this->resetAfterTest(true);
+        $user = $this->getDataGenerator()->create_user();
+        $sink = $this->redirectMessages();
+
+        import_notifier::notify_user((int)$user->id, 'Betreff', "Zeile 1\nZeile 2");
+
+        $messages = $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete');
+        $this->assertCount(1, $messages);
+        $message = reset($messages);
+        $this->assertSame((int)$user->id, (int)$message->useridto);
+        $this->assertSame('Betreff', $message->subject);
+        $this->assertStringContainsString('Zeile 2', $message->fullmessage);
+        $this->assertStringContainsString('/local/lehrgaengeapi/admin/import_runs.php', $message->contexturl);
+    }
+
+    /**
+     * Unknown, deleted or missing users are skipped silently.
+     *
+     * @covers \local_lehrgaengeapi\local\notification\import_notifier::notify_user
+     */
+    public function test_notify_user_skips_unknown_and_deleted_users(): void {
+        $this->resetAfterTest(true);
+        $deleted = $this->getDataGenerator()->create_user();
+        delete_user($deleted);
+        $sink = $this->redirectMessages();
+
+        import_notifier::notify_user(0, 'Betreff', 'Text');
+        import_notifier::notify_user(999999, 'Betreff', 'Text');
+        import_notifier::notify_user((int)$deleted->id, 'Betreff', 'Text');
+
+        $this->assertCount(0, $sink->get_messages_by_component_and_type('local_lehrgaengeapi', 'importcomplete'));
+    }
 }

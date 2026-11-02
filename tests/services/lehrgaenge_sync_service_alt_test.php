@@ -357,7 +357,9 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
      * found regardless of the year they carry, and the lookup does not leak across
      * Lehrgang types - including names that contain an SQL LIKE wildcard themselves.
      *
-     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::find_legacy_alt_course
+     * The lookup moved from the sync service into alt_course_finder, which the import uses.
+     *
+     * @covers \local_lehrgaengeapi\local\course\alt_course_finder::find
      */
     public function test_legacy_alt_course_is_found_regardless_of_year_suffix(): void {
         $this->resetAfterTest(true);
@@ -377,25 +379,19 @@ final class lehrgaenge_sync_service_alt_test extends \advanced_testcase {
             'fullname' => 'Wildcard-Falle',
         ]);
 
-        $service = $this->build_service($this->fake_endpoint([]));
-        $method = new \ReflectionMethod($service, 'find_legacy_alt_course');
-        $method->setAccessible(true);
+        $finder = new \local_lehrgaengeapi\local\course\alt_course_finder();
 
-        $found = $method->invoke($service, [
-            'tenant' => 'HLFS',
-            'coursename' => 'F/B-VB f. Fü',
-            'year' => '18',
-        ]);
+        $found = $finder->find('HLFS', 'F/B-VB f. Fü');
         $this->assertNotNull($found, 'The legacy _alt course should be reused, not duplicated.');
         $this->assertSame('HLFS-F/B-VB f. Fü-24_alt', $found->shortname);
 
         $this->assertNull(
-            $method->invoke($service, ['tenant' => 'HLFS', 'coursename' => 'F-Gibtsnicht', 'year' => '18']),
+            $finder->find('HLFS', 'F-Gibtsnicht'),
             'A Lehrgang type without any legacy course must not match anything.'
         );
 
         $this->assertNull(
-            $method->invoke($service, ['tenant' => 'HLFS', 'coursename' => 'A_B', 'year' => '18']),
+            $finder->find('HLFS', 'A_B'),
             'An underscore in the course name must be escaped, not treated as a LIKE wildcard.'
         );
     }

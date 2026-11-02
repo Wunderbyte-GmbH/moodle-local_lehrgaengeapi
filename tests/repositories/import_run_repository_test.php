@@ -182,4 +182,22 @@ final class import_run_repository_test extends \advanced_testcase {
         $this->assertSame([], import_run_repository::decode_summary((object)['summary' => '']));
         $this->assertSame([], import_run_repository::decode_summary((object)['summary' => 'not-json']));
     }
+
+    /**
+     * A linking run is stored with its run type; the constants name both types.
+     *
+     * @covers \local_lehrgaengeapi\local\repository\import_run_repository::start
+     */
+    public function test_start_stores_runtype(): void {
+        $this->resetAfterTest(true);
+        $repo = new import_run_repository();
+
+        $link = $repo->start(null, 5, import_run_repository::RUNTYPE_LINK);
+        $import = $repo->start(2024, null);
+
+        $this->assertSame('link', import_run_repository::RUNTYPE_LINK);
+        $this->assertSame('import', import_run_repository::RUNTYPE_IMPORT);
+        $this->assertSame('link', $link->runtype);
+        $this->assertSame('import', $import->runtype);
+    }
 }

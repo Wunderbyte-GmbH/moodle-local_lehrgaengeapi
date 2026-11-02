@@ -57,7 +57,11 @@ final class import_notifier {
 
         foreach ($recipients as $userto) {
             try {
-                self::send($userto, $status);
+                self::send(
+                    $userto,
+                    get_string('autoimport' . $status . 'subject', 'local_lehrgaengeapi'),
+                    get_string('autoimport' . $status . 'body', 'local_lehrgaengeapi')
+                );
             } catch (\Throwable $e) {
                 mtrace('local_lehrgaengeapi: could not notify user ' . $userto->id . ': ' . $e->getMessage());
             }
@@ -65,20 +69,45 @@ final class import_notifier {
     }
 
     /**
+     * Notify one user, e.g. the one who triggered a run.
+     *
+     * Unknown or deleted users are skipped; a failing notification is only logged.
+     *
+     * @param int $userid Recipient.
+     * @param string $subject Localised subject.
+     * @param string $body Localised plain text body.
+     * @return void
+     */
+    public static function notify_user(int $userid, string $subject, string $body): void {
+        if ($userid <= 0) {
+            return;
+        }
+        $userto = \core_user::get_user($userid);
+        if (!$userto || !empty($userto->deleted)) {
+            return;
+        }
+        try {
+            self::send($userto, $subject, $body);
+        } catch (\Throwable $e) {
+            mtrace('local_lehrgaengeapi: could not notify user ' . $userid . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Send one notification.
      *
      * @param \stdClass $userto Recipient.
-     * @param string $status import_run_repository::STATUS_SUCCESS or STATUS_ERROR.
+     * @param string $subject Localised subject.
+     * @param string $body Localised plain text body.
      * @return void
      */
-    private static function send(\stdClass $userto, string $status): void {
+    private static function send(\stdClass $userto, string $subject, string $body): void {
         $message = new \core\message\message();
         $message->component = 'local_lehrgaengeapi';
         $message->name = 'importcomplete';
         $message->userfrom = \core_user::get_noreply_user();
         $message->userto = $userto;
-        $message->subject = get_string('autoimport' . $status . 'subject', 'local_lehrgaengeapi');
-        $body = get_string('autoimport' . $status . 'body', 'local_lehrgaengeapi');
+        $message->subject = $subject;
         $message->fullmessage = $body;
         $message->fullmessageformat = FORMAT_PLAIN;
         $message->fullmessagehtml = nl2br(s($body));

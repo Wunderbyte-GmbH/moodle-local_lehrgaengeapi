@@ -25,6 +25,7 @@
 namespace local_lehrgaengeapi\users;
 
 use local_lehrgaengeapi\local\repository\usermap_repository;
+use local_lehrgaengeapi\local\repository\usertenant_repository;
 use local_lehrgaengeapi\local\users\ausbildungen_profile_field;
 use local_lehrgaengeapi\local\users\users_creator;
 
@@ -300,5 +301,68 @@ final class users_creator_test extends \advanced_testcase {
         $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'P-9'], MUST_EXIST);
         $decoded = json_decode($this->stored_ausbildungen($userid), true);
         $this->assertSame(['B-II'], array_column($decoded, 'kurzBezeichnung'));
+    }
+
+    /**
+     * The tenant that delivered a participant is remembered on every path: new user,
+     * known via mapping, found by idnumber and found by username.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_tenant_is_remembered_on_every_path(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+        $byidnumber = $this->getDataGenerator()->create_user(['idnumber' => 'T-2', 'username' => 'someone-t2']);
+        $byusername = $this->getDataGenerator()->create_user(['username' => 't-3', 'idnumber' => 'other-t3']);
+        $creator = new users_creator();
+
+        $creator->create([
+            $this->participant_with_ausbildungen('T-1', []),
+            $this->participant_with_ausbildungen('T-2', []),
+            $this->participant_with_ausbildungen('t-3', []),
+        ], 'FD');
+        // Second run: T-1 is now known via the mapping table.
+        $creator->create([$this->participant_with_ausbildungen('T-1', [])], 'FD');
+
+        $repo = new usertenant_repository();
+        $newuser = (int)$DB->get_field('user', 'id', ['idnumber' => 'T-1'], MUST_EXIST);
+        $this->assertSame(['FD'], $repo->get_tenants($newuser));
+        $this->assertSame(['FD'], $repo->get_tenants((int)$byidnumber->id));
+        $this->assertSame(['FD'], $repo->get_tenants((int)$byusername->id));
+    }
+
+    /**
+     * A participant delivered by two tenants keeps both, in order of appearance.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_participant_of_two_tenants_keeps_both(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+        $creator = new users_creator();
+
+        $creator->create([$this->participant_with_ausbildungen('T-5', [])], 'MKK');
+        $creator->create([$this->participant_with_ausbildungen('T-5', [])], 'HLFS');
+
+        $userid = (int)$DB->get_field('user', 'id', ['idnumber' => 'T-5'], MUST_EXIST);
+        $this->assertSame(['MKK', 'HLFS'], (new usertenant_repository())->get_tenants($userid));
+    }
+
+    /**
+     * Without a tenant (old callers) users are still created, nothing is remembered.
+     *
+     * @covers \local_lehrgaengeapi\local\users\users_creator::create
+     */
+    public function test_without_tenant_nothing_is_remembered(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        ausbildungen_profile_field::ensure_exists();
+
+        $summary = (new users_creator())->create([$this->participant_with_ausbildungen('T-6', [])]);
+
+        $this->assertSame(1, $summary['created']);
+        $this->assertSame(0, $DB->count_records('local_lehrgaengeapi_usertenant'));
     }
 }

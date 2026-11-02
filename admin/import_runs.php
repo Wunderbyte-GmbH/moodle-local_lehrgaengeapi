@@ -23,6 +23,8 @@
  */
 
 use local_lehrgaengeapi\local\repository\import_run_repository;
+use local_lehrgaengeapi\local\services\ausbildungen_linker;
+use local_lehrgaengeapi\table\link_result_table;
 
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -51,6 +53,12 @@ echo html_writer::link(
     get_string('startnewimport', 'local_lehrgaengeapi'),
     ['class' => 'btn btn-primary mb-3']
 );
+echo ' ';
+echo html_writer::link(
+    new moodle_url('/local/lehrgaengeapi/admin/link_ausbildungen.php'),
+    get_string('linkpagename', 'local_lehrgaengeapi'),
+    ['class' => 'btn btn-secondary mb-3']
+);
 
 if ($id) {
     if (!$run) {
@@ -64,6 +72,7 @@ if ($id) {
     $meta = new html_table();
     $meta->attributes['class'] = 'generaltable';
     $meta->data = [
+        [get_string('colruntype', 'local_lehrgaengeapi'), local_lehrgaengeapi_runtype_name($run)],
         [get_string('colyear', 'local_lehrgaengeapi'), $run->year ?: get_string('yearautomatic', 'local_lehrgaengeapi')],
         [get_string('colstatus', 'local_lehrgaengeapi'), local_lehrgaengeapi_status_badge($run->status)],
         [get_string('coltriggeredby', 'local_lehrgaengeapi'), local_lehrgaengeapi_triggeredby_name($run->triggeredby)],
@@ -71,6 +80,12 @@ if ($id) {
         [get_string('colended', 'local_lehrgaengeapi'), $run->timeended ? userdate($run->timeended) : '-'],
     ];
     echo html_writer::table($meta);
+
+    if (local_lehrgaengeapi_is_link_run($run)) {
+        local_lehrgaengeapi_render_link_run($run);
+        echo $OUTPUT->footer();
+        exit;
+    }
 
     $decoded = import_run_repository::decode_summary($run);
 
@@ -302,6 +317,7 @@ if ($id) {
     $table = new html_table();
     $table->attributes['class'] = 'generaltable';
     $table->head = [
+        get_string('colruntype', 'local_lehrgaengeapi'),
         get_string('colyear', 'local_lehrgaengeapi'),
         get_string('colstatus', 'local_lehrgaengeapi'),
         get_string('coltriggeredby', 'local_lehrgaengeapi'),
@@ -313,6 +329,7 @@ if ($id) {
 
     foreach ($recent as $run) {
         $table->data[] = [
+            local_lehrgaengeapi_runtype_name($run),
             $run->year ?: get_string('yearautomatic', 'local_lehrgaengeapi'),
             local_lehrgaengeapi_status_badge($run->status),
             local_lehrgaengeapi_triggeredby_name($run->triggeredby),
@@ -377,6 +394,17 @@ function local_lehrgaengeapi_triggeredby_name(?int $userid): string {
 function local_lehrgaengeapi_summarise_run(stdClass $run): string {
     $decoded = import_run_repository::decode_summary($run);
 
+    if (local_lehrgaengeapi_is_link_run($run) && $run->status === import_run_repository::STATUS_SUCCESS) {
+        $outcomes = $decoded['outcomes'] ?? [];
+        return get_string('linksummarytotals', 'local_lehrgaengeapi', (object)[
+            'users' => (int)($decoded['users'] ?? 0),
+            'linked' => (int)($outcomes[ausbildungen_linker::OUTCOME_LINKED_OWN] ?? 0)
+                + (int)($outcomes[ausbildungen_linker::OUTCOME_LINKED_HLFS] ?? 0),
+            'notfound' => (int)($outcomes[ausbildungen_linker::OUTCOME_NOTFOUND] ?? 0),
+            'errors' => (int)($outcomes[ausbildungen_linker::OUTCOME_ERROR] ?? 0) + count($decoded['failedusers'] ?? []),
+        ]);
+    }
+
     if (in_array($run->status, [import_run_repository::STATUS_SUCCESS, import_run_repository::STATUS_RUNNING], true)) {
         $totals = ['created' => 0, 'skipped' => 0, 'failed' => 0, 'total' => 0];
         foreach ($decoded as $tenantresult) {
@@ -394,4 +422,76 @@ function local_lehrgaengeapi_summarise_run(stdClass $run): string {
         return s($decoded['reason'] ?? '');
     }
     return '';
+}
+
+/**
+ * Whether a run is a linking run (runs logged before the run type existed are imports).
+ *
+ * @param stdClass $run Run row.
+ * @return bool
+ */
+function local_lehrgaengeapi_is_link_run(stdClass $run): bool {
+    return ($run->runtype ?? import_run_repository::RUNTYPE_IMPORT) === import_run_repository::RUNTYPE_LINK;
+}
+
+/**
+ * Display name of a run's type.
+ *
+ * @param stdClass $run Run row.
+ * @return string
+ */
+function local_lehrgaengeapi_runtype_name(stdClass $run): string {
+    return get_string(local_lehrgaengeapi_is_link_run($run) ? 'runtypelink' : 'runtypeimport', 'local_lehrgaengeapi');
+}
+
+/**
+ * Detail view of a linking run: users, counts per outcome, failed users, link to the report.
+ *
+ * @param stdClass $run Run row.
+ * @return void
+ */
+function local_lehrgaengeapi_render_link_run(stdClass $run): void {
+    global $OUTPUT;
+
+    $decoded = import_run_repository::decode_summary($run);
+
+    if ($run->status === import_run_repository::STATUS_ERROR) {
+        echo $OUTPUT->notification(s($decoded['error'] ?? ''), 'error');
+        return;
+    }
+    if ($run->status === import_run_repository::STATUS_SKIPPED) {
+        echo $OUTPUT->notification(s($decoded['reason'] ?? ''), 'warning');
+        return;
+    }
+
+    $resultsurl = new moodle_url('/local/lehrgaengeapi/admin/link_results.php', ['runid' => $run->id]);
+    $counts = new html_table();
+    $counts->attributes['class'] = 'generaltable w-auto';
+    $counts->data[] = [get_string('linkusers', 'local_lehrgaengeapi'), (int)($decoded['users'] ?? 0)];
+    $outcomes = $decoded['outcomes'] ?? [];
+    foreach (link_result_table::outcome_options() as $outcome => $label) {
+        if (!empty($outcomes[$outcome])) {
+            $counts->data[] = [
+                html_writer::link(new moodle_url($resultsurl, ['outcome' => $outcome]), $label),
+                (int)$outcomes[$outcome],
+            ];
+        }
+    }
+    echo $OUTPUT->heading(get_string('linkoutcomecounts', 'local_lehrgaengeapi'), 4);
+    echo html_writer::table($counts);
+
+    $failedusers = $decoded['failedusers'] ?? [];
+    if ($failedusers) {
+        $items = [];
+        foreach ($failedusers as $userid => $message) {
+            $items[] = html_writer::tag('li', html_writer::link(
+                new moodle_url('/user/profile.php', ['id' => $userid]),
+                (int)$userid
+            ) . ' – ' . s($message));
+        }
+        echo $OUTPUT->notification(get_string('linkfailedusers', 'local_lehrgaengeapi'), 'warning');
+        echo html_writer::tag('ul', implode('', $items));
+    }
+
+    echo html_writer::link($resultsurl, get_string('viewlinkresults', 'local_lehrgaengeapi'), ['class' => 'btn btn-primary']);
 }

@@ -25,6 +25,7 @@
 namespace local_lehrgaengeapi\local\users;
 
 use local_lehrgaengeapi\local\repository\usermap_repository;
+use local_lehrgaengeapi\local\repository\usertenant_repository;
 use stdClass;
 
 /**
@@ -41,6 +42,9 @@ final class users_creator {
     /** @var ausbildungen_writer */
     private ausbildungen_writer $ausbildungen;
 
+    /** @var usertenant_repository */
+    private usertenant_repository $usertenants;
+
     /**
      * Constructor.
      * @return void
@@ -48,16 +52,19 @@ final class users_creator {
     public function __construct() {
         $this->usermap = new usermap_repository();
         $this->ausbildungen = new ausbildungen_writer();
+        $this->usertenants = new usertenant_repository();
     }
 
     /**
-     * Create a Moodle users in a given category.
+     * Create or match Moodle users for the given participants.
      * @param array $participants
+     * @param string $tenantabbr Abbreviation of the tenant whose API delivered them ('' = unknown).
      * @return array
      */
-    public function create(array $participants): array {
+    public function create(array $participants, string $tenantabbr = ''): array {
         global $DB, $CFG;
 
+        require_once($CFG->dirroot . '/user/lib.php');
         $created = 0;
         $existing = 0;
         $skipped = 0;
@@ -84,7 +91,7 @@ final class users_creator {
                 if ($u) {
                     $this->check_and_fill_ids($u, $id, $initialid);
                     $existing++;
-                    $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
+                    $ausbildungenupdated += $this->after_user_resolved((int)$u->id, $p, $tenantabbr);
                     continue;
                 }
             }
@@ -93,7 +100,7 @@ final class users_creator {
             if ($u) {
                 $this->usermap->set_userid($id, (int)$u->id);
                 $existing++;
-                $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
+                $ausbildungenupdated += $this->after_user_resolved((int)$u->id, $p, $tenantabbr);
                 continue;
             }
 
@@ -106,7 +113,7 @@ final class users_creator {
                 $this->usermap->set_userid($id, (int)$u->id);
                 $this->check_and_fill_ids($u, $id, $initialid);
                 $existing++;
-                $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
+                $ausbildungenupdated += $this->after_user_resolved((int)$u->id, $p, $tenantabbr);
                 continue;
             }
 
@@ -142,7 +149,7 @@ final class users_creator {
                 $userid = user_create_user($newuser, false, false);
                 // Persist mapping.
                 $this->usermap->set_userid($id, (int)$userid);
-                $ausbildungenupdated += (int)$this->ausbildungen->write((int)$userid, $p);
+                $ausbildungenupdated += $this->after_user_resolved((int)$userid, $p, $tenantabbr);
                 $created++;
             } catch (\dml_write_exception $e) {
                 // Another process may have inserted the same username concurrently.
@@ -155,7 +162,7 @@ final class users_creator {
                 if ($u) {
                     $this->usermap->set_userid($id, (int)$u->id);
                     $existing++;
-                    $ausbildungenupdated += (int)$this->ausbildungen->write((int)$u->id, $p);
+                    $ausbildungenupdated += $this->after_user_resolved((int)$u->id, $p, $tenantabbr);
                     continue;
                 }
 
@@ -170,6 +177,19 @@ final class users_creator {
             'total'    => $total,
             'ausbildungen_updated' => $ausbildungenupdated,
         ];
+    }
+
+    /**
+     * Everything that has to happen once a participant is resolved to a Moodle user.
+     *
+     * @param int $userid Moodle user id.
+     * @param array $participant Participant payload.
+     * @param string $tenantabbr Delivering tenant ('' = unknown).
+     * @return int 1 if the Ausbildungen changed, otherwise 0.
+     */
+    private function after_user_resolved(int $userid, array $participant, string $tenantabbr): int {
+        $this->usertenants->remember($userid, $tenantabbr);
+        return (int)$this->ausbildungen->write($userid, $participant);
     }
 
     /**

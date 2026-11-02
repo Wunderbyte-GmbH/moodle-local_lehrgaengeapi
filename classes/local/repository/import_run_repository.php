@@ -48,14 +48,21 @@ final class import_run_repository {
     /** @var string Run did not execute because another run held the lock */
     public const STATUS_SKIPPED = 'skipped';
 
+    /** @var string Run of the Lehrgaenge import (manual or automatic). */
+    public const RUNTYPE_IMPORT = 'import';
+
+    /** @var string Run of the Ausbildungen linking. */
+    public const RUNTYPE_LINK = 'link';
+
     /**
      * Start a new run and persist it as "running".
      *
      * @param int|null $year Year filter, null for an automatic/unfiltered run.
      * @param int|null $triggeredby Moodle user.id who triggered a manual run, null for cron.
+     * @param string $runtype One of the RUNTYPE_* constants.
      * @return stdClass Created run row.
      */
-    public function start(?int $year, ?int $triggeredby): stdClass {
+    public function start(?int $year, ?int $triggeredby, string $runtype = self::RUNTYPE_IMPORT): stdClass {
         global $DB;
 
         $record = (object)[
@@ -65,6 +72,7 @@ final class import_run_repository {
             'timestarted' => time(),
             'timeended' => null,
             'summary' => null,
+            'runtype' => $runtype,
         ];
 
         $record->id = $DB->insert_record(self::TABLE, $record);

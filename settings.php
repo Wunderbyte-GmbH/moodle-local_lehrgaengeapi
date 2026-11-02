@@ -48,6 +48,13 @@ if ($hassiteconfig) {
         'moodle/site:config'
     ));
 
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_lehrgaengeapi_link_ausbildungen',
+        get_string('linkpagename', $componentname),
+        new moodle_url('/local/lehrgaengeapi/admin/link_ausbildungen.php'),
+        'moodle/site:config'
+    ));
+
     if ($ADMIN->fulltree) {
         $settings->add(new admin_setting_heading(
             $componentname . '/settings_heading',

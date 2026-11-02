@@ -31,6 +31,8 @@ use local_lehrgaengeapi\local\repository\coursemap_repository;
 use local_lehrgaengeapi\local\course\course_creator;
 use local_lehrgaengeapi\local\tenants\tenant_creator;
 use local_lehrgaengeapi\local\services\participants_sync_service;
+use local_lehrgaengeapi\local\course\alt_course_finder;
+use local_lehrgaengeapi\local\course\course_type_resolver;
 
 /**
  * Lehrgaenge sync service.
@@ -54,19 +56,6 @@ final class lehrgaenge_sync_service {
 
     /** @var tenant_creator */
     private tenant_creator $tenantcreator;
-
-    /** @var array */
-    private array $coursematching = [
-        'F-I' => 'F-I',
-        'F-II' => 'F-II',
-        'F-Atr' => 'F-ATR',
-        'F-Ma' => 'F-MA',
-        'F/K-Sprechfunk' => 'F/K-SPF',
-        'F-TH-VU' => 'F-TH-VU',
-        'F/B-mobBSA-Hessen' => 'F-BSA',
-        'F/B-BSA-Sem.' => 'F/B-BSA-Sem.',
-        'F-III' => 'F-III-elearn',
-    ];
 
     /**
      * Constructor.
@@ -154,13 +143,11 @@ final class lehrgaenge_sync_service {
             if (!$existing) {
                 $altshortname = $this->resolve_alt_shortname_for_past_course($identifications, $ishlfs);
                 if ($altshortname !== null) {
-                    $existing = $DB->get_record('course', ['shortname' => $altshortname], '*', IGNORE_MISSING);
-                    if (!$existing) {
-                        // Completion courses created before the year was dropped from the
-                        // naming convention still carry it (e.g. TENANT-NAME-26_alt). They
-                        // stay in use, so participants go there instead of into a duplicate.
-                        $existing = $this->find_legacy_alt_course($identifications);
-                    }
+                    // Year-less <TENANT>-<NAME>_alt first, then the legacy <TENANT>-<NAME>-YY_alt.
+                    $existing = (new alt_course_finder())->find(
+                        (string)$identifications['tenant'],
+                        (string)$identifications['coursename']
+                    );
                 }
             }
 
@@ -294,24 +281,10 @@ final class lehrgaenge_sync_service {
      * @return string
      */
     private function resolve_coursename_identifier(array $item): string {
-        $kurzbezeichnung = (string)($item['kurzbezeichnung'] ?? '');
-        if (isset($this->coursematching[$kurzbezeichnung])) {
-            $kurzbezeichnung = $this->coursematching[$kurzbezeichnung];
-        }
-        if ($kurzbezeichnung !== 'F-III') {
-            return $kurzbezeichnung;
-        }
-
-        $bezeichnung = mb_strtolower(trim((string)($item['bezeichnung'] ?? '')));
-        if ($bezeichnung === '') {
-            return $kurzbezeichnung;
-        }
-
-        if (mb_strpos($bezeichnung, 'e-learning') !== false) {
-            return $this->coursematching['F-III'];
-        }
-
-        return $kurzbezeichnung;
+        return (new course_type_resolver())->resolve(
+            (string)($item['kurzbezeichnung'] ?? ''),
+            (string)($item['bezeichnung'] ?? '')
+        );
     }
 
     /**
@@ -350,29 +323,6 @@ final class lehrgaenge_sync_service {
     }
 
     /**
-     * Find a completion course created under the legacy <TENANT>-<NAME>-<YY>_alt convention.
-     *
-     * Those courses stay in use, so a past-year Lehrgang is enrolled into the existing one
-     * instead of a second _alt course being created alongside it.
-     *
-     * @param array $identifications
-     * @return stdClass|null
-     */
-    private function find_legacy_alt_course(array $identifications): ?stdClass {
-        global $DB;
-
-        $base = implode('-', [
-            $identifications['tenant'],
-            $identifications['coursename'],
-        ]);
-
-        $select = $DB->sql_like('shortname', ':shortname');
-        $params = ['shortname' => $DB->sql_like_escape($base . '-') . '%' . $DB->sql_like_escape('_alt')];
-
-        return $DB->get_record_select('course', $select, $params, '*', IGNORE_MULTIPLE) ?: null;
-    }
-
-    /**
      * Resolve the year-less <TENANT>-<NAME>_alt shortname if the source course year is in the past.
      *
      * Must stay in sync with course_creator::resolve_target_shortname().
@@ -393,10 +343,10 @@ final class lehrgaenge_sync_service {
             }
         }
 
-        return implode('-', [
-            $identifications['tenant'],
-            $identifications['coursename'],
-        ]) . '_alt';
+        return alt_course_finder::alt_shortname(
+            (string)$identifications['tenant'],
+            (string)$identifications['coursename']
+        );
     }
 
     /**
