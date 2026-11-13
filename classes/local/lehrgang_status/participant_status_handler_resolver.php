@@ -56,6 +56,7 @@ final class participant_status_handler_resolver {
     /** @var string[] Keywords of statuses that enrol the participant. */
     private const ASSIGN_KEYWORDS = [
         'EINBERUFUNG',
+        'EINBERUFEN',
         'ANGEMELDET_EIGENE',
     ];
 
