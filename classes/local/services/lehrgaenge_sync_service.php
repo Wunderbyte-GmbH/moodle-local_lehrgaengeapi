@@ -160,7 +160,7 @@ final class lehrgaenge_sync_service {
             $shortname = implode('-', $identifications);
             $existing = $DB->get_record('course', ['shortname' => $shortname], '*', IGNORE_MISSING);
             if (!$existing) {
-                $altshortname = $this->resolve_alt_shortname_for_past_course($identifications, $ishlfs);
+                $altshortname = $this->resolve_alt_shortname_for_past_course($identifications);
                 if ($altshortname !== null) {
                     // Year-less <TENANT>-<NAME>_alt first, then the legacy <TENANT>-<NAME>-YY_alt.
                     $existing = (new alt_course_finder())->find(
@@ -219,7 +219,7 @@ final class lehrgaenge_sync_service {
                     $unfoundhlfscourses[$externalid] = [
                         'externalid' => $externalid,
                         'sourceshortname' => $shortname,
-                        'shortname' => $this->resolve_alt_shortname_for_past_course($identifications, true),
+                        'shortname' => $this->resolve_alt_shortname_for_past_course($identifications) ?? $shortname,
                         'bezeichnung' => (string)($item['bezeichnung'] ?? ''),
                         'kurzbezeichnung' => (string)($item['kurzbezeichnung'] ?? ''),
                         'ort' => $item['ort'],
@@ -321,24 +321,21 @@ final class lehrgaenge_sync_service {
      *
      * @param array $identifications
      * @return string|null
-     * @param bool $always Build the name regardless of the year (HLFS collection courses).
      */
-    private function resolve_alt_shortname_for_past_course(array $identifications, bool $always = false): ?string {
+    private function resolve_alt_shortname_for_past_course(array $identifications): ?string {
         $year = (string)($identifications['year'] ?? '');
-        if (!$always) {
-            if (!preg_match('/^\d{2}$/', $year)) {
-                return null;
-            }
-
-            if ((int)$year >= (int)date('y')) {
-                return null;
-            }
+        if (!preg_match('/^\d{2}$/', $year)) {
+            return null;
         }
 
-        return alt_course_finder::alt_shortname(
-            (string)$identifications['tenant'],
-            (string)$identifications['coursename']
-        );
+        if ((int)$year >= (int)date('y')) {
+            return null;
+        }
+
+        return implode('-', [
+            $identifications['tenant'],
+            $identifications['coursename'],
+        ]) . '_alt';
     }
 
     /**

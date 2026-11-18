@@ -49,14 +49,14 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
     ];
 
     /**
-     * Without any other template an HLFS Lehrgang of the current year is built from the master
-     * course as a year-less <HLFS>-<NAME>_alt collection course, and further Lehrgaenge of the
-     * same type are put into that one course instead of trying to create it again.
+     * Without any other template, past-year HLFS Lehrgaenge are built from the master course as
+     * a year-less <HLFS>-<NAME>_alt collection course, and further Lehrgaenge of the same type
+     * are put into that one course instead of trying to create it again.
      *
      * @covers \local_lehrgaengeapi\local\course\course_creator::create
      * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
      */
-    public function test_current_year_hlfs_lehrgang_uses_master_course_as_alt_collection_course(): void {
+    public function test_past_year_hlfs_lehrgang_uses_master_course_as_alt_collection_course(): void {
         global $DB;
         $this->prepare_environment();
 
@@ -64,8 +64,8 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
         $this->create_hlfs_company();
 
         $service = $this->build_service($this->fake_endpoint([
-            $this->lehrgang('LG-MC-100', 'MCX', 'Master Lehrgang A'),
-            $this->lehrgang('LG-MC-200', 'MCX', 'Master Lehrgang B'),
+            $this->lehrgang('LG-MC-100', 'MCX', 'Master Lehrgang A', 'HLFS Kassel', -2),
+            $this->lehrgang('LG-MC-200', 'MCX', 'Master Lehrgang B', 'HLFS Kassel', -2),
         ], [
             'LG-MC-100' => [$this->participant('p-mc-100', 'Anna', 'Muster')],
             'LG-MC-200' => [$this->participant('p-mc-200', 'Bob', 'Muster')],
@@ -101,6 +101,51 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
     }
 
     /**
+     * The year decides the course: past years share the _alt collection course, the current
+     * and the next year each get their own year course - all built from the master course.
+     * A second run creates nothing new.
+     *
+     * @covers \local_lehrgaengeapi\local\course\course_creator::create
+     * @covers \local_lehrgaengeapi\local\services\lehrgaenge_sync_service::sync
+     */
+    public function test_hlfs_lehrgaenge_of_each_year_get_their_own_course_from_master(): void {
+        global $DB;
+        $this->prepare_environment();
+
+        $this->create_master_course();
+        $this->create_hlfs_company();
+        $thisyear = date('y');
+        $nextyear = sprintf('%02d', ((int)date('Y') + 1) % 100);
+
+        $service = $this->build_service($this->fake_endpoint([
+            $this->lehrgang('LG-YR-1', 'YRX', 'Vergangen', 'HLFS Kassel', -2),
+            $this->lehrgang('LG-YR-2', 'YRX', 'Laufend', 'HLFS Kassel', 0),
+            $this->lehrgang('LG-YR-3', 'YRX', 'Zukuenftig', 'HLFS Kassel', 1),
+        ]));
+
+        $summary = $service->sync(self::HLFS);
+        $this->assertSame(3, $summary['created']);
+        $this->assertEmpty($summary['unfoundhlfscourses']);
+
+        $alt = $DB->get_record('course', ['shortname' => 'HLFS-YRX_alt'], '*', MUST_EXIST);
+        $current = $DB->get_record('course', ['shortname' => 'HLFS-YRX-' . $thisyear], '*', MUST_EXIST);
+        $next = $DB->get_record('course', ['shortname' => 'HLFS-YRX-' . $nextyear], '*', MUST_EXIST);
+        $this->assertCount(3, array_unique([(int)$alt->id, (int)$current->id, (int)$next->id]));
+        $this->assertSame('', (string)$alt->idnumber);
+        $this->assertSame('LG-YR-2', $current->idnumber);
+        $this->assertSame('LG-YR-3', $next->idnumber);
+
+        $repo = new coursemap_repository();
+        $this->assertSame((int)$alt->id, (int)$repo->get_by_externalid('LG-YR-1')->courseid);
+        $this->assertSame((int)$current->id, (int)$repo->get_by_externalid('LG-YR-2')->courseid);
+        $this->assertSame((int)$next->id, (int)$repo->get_by_externalid('LG-YR-3')->courseid);
+
+        $second = $service->sync(self::HLFS);
+        $this->assertSame(0, $second['created']);
+        $this->assertSame(3, $DB->count_records_select('course', 'shortname LIKE ?', ['HLFS-YRX%']));
+    }
+
+    /**
      * An existing year course of the same Lehrgang type keeps precedence over the collection
      * course, so nothing changes for HLFS Lehrgaenge that are already handled today.
      *
@@ -130,7 +175,7 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
 
     /**
      * Without a configured master course nothing is created and the Lehrgang is reported with
-     * the collection course name it would have received.
+     * the course name it would have received (the year course for the current year).
      *
      * @covers \local_lehrgaengeapi\local\course\course_creator::create
      */
@@ -147,8 +192,8 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
 
         $this->assertSame(0, $summary['created']);
         $this->assertCount(1, $summary['unfoundhlfscourses']);
-        $this->assertSame('HLFS-NMX_alt', $summary['unfoundhlfscourses']['LG-NM-100']['shortname']);
-        $this->assertFalse($DB->record_exists('course', ['shortname' => 'HLFS-NMX_alt']));
+        $this->assertSame('HLFS-NMX-' . date('y'), $summary['unfoundhlfscourses']['LG-NM-100']['shortname']);
+        $this->assertSame(0, $DB->count_records_select('course', 'shortname LIKE ?', ['HLFS-NMX%']));
     }
 
     /**
@@ -170,7 +215,7 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
 
         $this->assertSame(0, $summary['created']);
         $this->assertCount(1, $summary['unfoundhlfscourses']);
-        $this->assertFalse($DB->record_exists('course', ['shortname' => 'HLFS-DMX_alt']));
+        $this->assertSame(0, $DB->count_records_select('course', 'shortname LIKE ?', ['HLFS-DMX%']));
     }
 
     /**
@@ -257,22 +302,30 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
     }
 
     /**
-     * Build a Lehrgang item ending in the current year.
+     * Build a Lehrgang item ending in the current year (or the given number of years off it).
      *
      * @param string $id Florix id.
      * @param string $kurz Kurzbezeichnung.
      * @param string $bezeichnung Bezeichnung.
      * @param string $ort Ort.
+     * @param int $yearoffset Years relative to the current year, e.g. -2 for a past Lehrgang.
      * @return array
      */
-    private function lehrgang(string $id, string $kurz, string $bezeichnung, string $ort = 'HLFS Kassel'): array {
+    private function lehrgang(
+        string $id,
+        string $kurz,
+        string $bezeichnung,
+        string $ort = 'HLFS Kassel',
+        int $yearoffset = 0
+    ): array {
+        $year = (int)date('Y') + $yearoffset;
         return [
             'id' => $id,
             'bezeichnung' => $bezeichnung,
             'kurzbezeichnung' => $kurz,
             'ort' => $ort,
-            'startTag' => '01.02.' . date('Y'),
-            'endTag' => date('Y') . '-12-31',
+            'startTag' => '01.02.' . $year,
+            'endTag' => $year . '-12-31',
         ];
     }
 
@@ -397,8 +450,8 @@ final class lehrgaenge_sync_service_hlfs_master_test extends \advanced_testcase 
         $this->create_hlfs_company();
 
         $service = $this->build_service($this->fake_endpoint([
-            $this->lehrgang('LG-CR-100', 'CRX', 'Sammel A'),
-            $this->lehrgang('LG-CR-200', 'CRX', 'Sammel B'),
+            $this->lehrgang('LG-CR-100', 'CRX', 'Sammel A', 'HLFS Kassel', -2),
+            $this->lehrgang('LG-CR-200', 'CRX', 'Sammel B', 'HLFS Kassel', -2),
         ]));
 
         $summary = $service->sync(self::HLFS);

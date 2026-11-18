@@ -61,11 +61,9 @@ final class course_creator {
             $templatecourse = $this->get_current_year_course($identifications);
         }
 
-        // HLFS collection courses: without any other template, build them from the master course.
-        $usedmaster = false;
+        // HLFS: without any other template, build the course from the master course.
         if (empty($templatecourse) && $ishlfs) {
             $templatecourse = $this->get_master_course();
-            $usedmaster = !empty($templatecourse);
         }
 
         if (empty($templatecourse)) {
@@ -84,7 +82,7 @@ final class course_creator {
         }
 
         $baseshortname = implode('-', $identifications);
-        $shortname = $this->resolve_target_shortname($identifications, $baseshortname, $usedmaster);
+        $shortname = $this->resolve_target_shortname($identifications, $baseshortname);
         $data->category  = $tenant->get('category');
         $data->fullname  = $identifications['coursename'];
         if (str_ends_with($shortname, '_alt')) {
@@ -136,11 +134,10 @@ final class course_creator {
      *
      * @param array $identifications
      * @param string $baseshortname
-     * @param bool $forcealt Always build the year-less _alt name (HLFS master course fallback).
      * @return string
      */
-    private function resolve_target_shortname(array $identifications, string $baseshortname, bool $forcealt = false): string {
-        if (!$forcealt && !$this->is_past_year((string)($identifications['year'] ?? ''))) {
+    private function resolve_target_shortname(array $identifications, string $baseshortname): string {
+        if (!$this->is_past_year((string)($identifications['year'] ?? ''))) {
             return $baseshortname;
         }
 

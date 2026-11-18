@@ -47,9 +47,13 @@ final class participant_status_handler_resolver_test extends \advanced_testcase 
         'einschreiben' => [
             'handler' => angemeldet_participant_status_handler::class,
             'states' => [
+                'S033_EINBERUFEN_KREIS',
                 'S034_EINBERUFUNG_VERSCHICKT_KREIS',
+                'S065_EINBERUFEN_LAND',
                 'S066_EINBERUFUNG_VERSCHICKT_LAND',
+                'S106_EINBERUFEN_WERKFEUERWEHRVERBAND',
                 'S107_EINBERUFUNG_VERSCHICKT_WERKFEUERWEHRVERBAND',
+                'S120_EINBERUFEN_GEMEINDE',
                 'S122_EINBERUFUNG_VERSCHICKT_GEMEINDE',
                 'S129_ANGEMELDET_EIGENE_GEMEINDE',
             ],
@@ -110,15 +114,11 @@ final class participant_status_handler_resolver_test extends \advanced_testcase 
                 'S000_ERFASST_ORTSFEUERWEHR',
                 'S010_ANGEMELDET_GEMEINDE',
                 'S018_ANGEMELDET_KREIS',
-                'S033_EINBERUFEN_KREIS',
                 'S039_FEHLT_ENTSCHULDIGT_KREIS',
                 'S054_ANGEMELDET_LAND',
-                'S065_EINBERUFEN_LAND',
                 'S067_FEHLT_ENTSCHULDIGT_LAND',
                 'S102_ANGEMELDET_WERKFEUERWEHRVERBAND',
-                'S106_EINBERUFEN_WERKFEUERWEHRVERBAND',
                 'S108_FEHLT_ENTSCHULDIGT_WERKFEUERWEHRVERBAND',
-                'S120_EINBERUFEN_GEMEINDE',
                 'S123_FEHLT_ENTSCHULDIGT_GEMEINDE',
                 'S140_VERSCHOBEN',
             ],
@@ -186,7 +186,7 @@ final class participant_status_handler_resolver_test extends \advanced_testcase 
             new abgemeldet_participant_status_handler()
         );
 
-        // EINBERUFUNG (not EINBERUFEN) is an assign keyword since the status handling was reworked.
+        // EINBERUFUNG and EINBERUFEN are assign keywords.
         $handler = $resolver->resolve('  s034_einberufung_verschickt_kreis  ');
 
         $this->assertInstanceOf(angemeldet_participant_status_handler::class, $handler);
